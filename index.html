@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Leonida · Carte GTA VI</title>
+<link rel="stylesheet" href="lib/ol.css">
+<style>
+  :root {
+    --ocean: #2f90b0;
+    --panel: rgba(18, 28, 36, 0.82);
+    --panel-hover: rgba(30, 44, 56, 0.92);
+    --text: #f2f5f7;
+    --muted: #9fb2bf;
+    --radius: 10px;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ocean); overscroll-behavior: none; }
+  body { font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); }
+
+  #map { position: absolute; inset: 0; background: var(--ocean); outline: none; touch-action: none; cursor: grab; }
+  #map.dragging { cursor: grabbing; }
+
+  .panel {
+    position: absolute; z-index: 10;
+    background: var(--panel); color: var(--text);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    user-select: none; -webkit-user-select: none;
+  }
+  /* --- Panneau latéral des catégories --- */
+  .side {
+    top: 14px; left: 14px; bottom: 14px; width: 290px;
+    display: flex; flex-direction: column; overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+    transition: transform 0.25s ease;
+  }
+  .side.closed { transform: translateX(calc(-100% - 14px)); }
+  .side-head { padding: 12px 14px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .side-head strong { font-size: 15px; letter-spacing: 0.02em; }
+  .side-head .sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .side-tools { display: flex; gap: 6px; margin-top: 10px; }
+  .side-tools input {
+    flex: 1; min-width: 0; height: 30px; padding: 0 10px; border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.25); color: var(--text);
+    font: inherit; outline: none;
+  }
+  .side-tools input:focus { border-color: rgba(255, 255, 255, 0.35); }
+  .side-tools button, .mini-btn {
+    height: 30px; padding: 0 9px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap;
+  }
+  .side-tools button:hover, .mini-btn:hover { background: rgba(255, 255, 255, 0.14); }
+  .side-count { color: var(--muted); font-size: 11px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .side-count b { color: var(--text); }
+  .side-list { flex: 1; overflow-y: auto; padding: 6px 6px 10px; overscroll-behavior: contain; }
+  .side-list::-webkit-scrollbar { width: 8px; }
+  .side-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+
+  .grp { margin-top: 4px; }
+  .grp-head {
+    display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; cursor: pointer;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .grp-head:hover { background: rgba(255, 255, 255, 0.06); }
+  .grp-head .chev { width: 10px; transition: transform 0.15s; color: var(--muted); }
+  .grp.collapsed .chev { transform: rotate(-90deg); }
+  .grp-head .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35); }
+  .grp-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grp-head .tog { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; padding: 2px 6px; border-radius: 5px; }
+  .grp-head .tog:hover { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+  .grp.collapsed .cats { display: none; }
+  .cat {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 26px; border-radius: 6px; cursor: pointer;
+  }
+  .cat:hover { background: rgba(255, 255, 255, 0.06); }
+  .cat .box {
+    width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1.5px solid rgba(255, 255, 255, 0.35);
+    display: grid; place-items: center;
+  }
+  .cat.on .box { border-color: transparent; }
+  .cat .box svg { width: 10px; height: 10px; stroke: #10181e; stroke-width: 3; fill: none; opacity: 0; }
+  .cat.on .box svg { opacity: 1; }
+  .cat .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat .n { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .cat:not(.on) .label { color: var(--muted); }
+  .hidden { display: none !important; }
+
+  /* Onglets Tous / Favoris / À visiter / Visités */
+  .tabs { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr; gap: 4px; margin-top: 10px; padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.25); }
+  .tabs button {
+    height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer;
+    font: inherit; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
+  .tabs .ic { font-size: 13px; }
+  .tabs button[data-mode="fav"] .ic { color: #ffd166; }
+  .tabs button[data-mode="todo"] .ic { color: #ffffff; }
+  .tabs button[data-mode="done"] .ic { color: #7ee2a8; }
+  .tabs .tn { font-variant-numeric: tabular-nums; font-size: 11px; }
+  .opt { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .opt input { margin: 0; accent-color: #7ee2a8; }
+  .mode-title { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .mode-title b { color: var(--text); }
+
+  /* Liste des lieux marqués */
+  .mk { display: flex; gap: 9px; align-items: flex-start; padding: 7px 8px; border-radius: 7px; cursor: pointer; }
+  .mk:hover { background: rgba(255, 255, 255, 0.06); }
+  .mk .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 4px; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35); }
+  .mk .t { font-size: 12.5px; line-height: 1.3; }
+  .mk .s { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .mk .badges { margin-left: auto; font-size: 12px; white-space: nowrap; }
+  .mk .badges .f { color: #ffd166; } .mk .badges .d { color: #7ee2a8; } .mk .badges .o { color: #fff; }
+  .empty { padding: 18px 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+  .side-foot { padding: 8px 14px 10px; border-top: 1px solid rgba(255, 255, 255, 0.07); font-size: 10px; line-height: 1.4; color: var(--muted); }
+  .side-foot a { color: #cfe3ee; text-decoration: none; }
+
+  /* Boutons de marque dans la fiche */
+  .popup .marks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 11px; }
+  .popup .marks button {
+    height: 32px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05);
+    color: var(--text); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .popup .marks button:hover { background: rgba(255, 255, 255, 0.12); }
+  .popup .marks button.on[data-mark="fav"] { background: rgba(255, 209, 102, 0.22); border-color: #ffd166; color: #ffd166; }
+  .popup .marks button.on[data-mark="todo"] { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
+  .popup .marks button.on[data-mark="done"] { background: rgba(126, 226, 168, 0.2); border-color: #7ee2a8; color: #7ee2a8; }
+
+  .side-toggle {
+    top: 14px; left: 318px; width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+    transition: left 0.25s ease;
+  }
+  .side-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; transition: transform 0.25s; }
+  body.side-closed .side-toggle { left: 14px; }
+  body.side-closed .side-toggle svg { transform: rotate(180deg); }
+
+  /* --- Fiche d'un point --- */
+  .popup {
+    position: relative; width: 320px; max-height: 60vh; display: flex; flex-direction: column;
+    background: rgba(18, 28, 36, 0.95); color: var(--text); border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    transform: translate(-50%, calc(-100% - 16px)); overflow: hidden; cursor: auto;
+  }
+  .popup::after { content: ''; }
+  .popup .ph { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #0d151b; }
+  .popup .ph-strip { display: flex; gap: 4px; padding: 4px 4px 0; overflow-x: auto; }
+  .popup .ph-strip img { height: 44px; border-radius: 4px; cursor: pointer; opacity: 0.6; }
+  .popup .ph-strip img.sel { opacity: 1; outline: 2px solid #fff; }
+  .popup .body { padding: 12px 14px 14px; overflow-y: auto; overscroll-behavior: contain; }
+  .popup .cat-line { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .popup .cat-line .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .popup h3 { margin: 5px 0 2px; font-size: 15px; line-height: 1.25; }
+  .popup .region { color: var(--muted); font-size: 11px; }
+  .popup .desc { margin-top: 9px; font-size: 12.5px; line-height: 1.5; color: #dbe4ea; }
+  .popup .desc p { margin: 0 0 6px; }
+  .popup .desc ul { margin: 2px 0 6px; padding-left: 18px; }
+  .popup .desc a { color: #8fd3f0; }
+  .popup .close {
+    position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 15px; line-height: 26px; text-align: center; z-index: 2;
+  }
+  .popup .close:hover { background: rgba(0, 0, 0, 0.8); }
+  .popup .noimg { padding-top: 34px; }
+  .popup .near { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+  .popup .near a { color: #8fd3f0; text-decoration: none; }
+  .popup .near a:hover { text-decoration: underline; }
+
+  .controls { right: 14px; bottom: 34px; display: flex; flex-direction: column; overflow: hidden; }
+  .controls button {
+    width: 40px; height: 40px; border: 0; margin: 0; padding: 0;
+    background: transparent; color: var(--text); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .controls button + button { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .controls button:hover { background: var(--panel-hover); }
+  .controls button:disabled { color: #5d6d78; cursor: default; background: transparent; }
+  .controls svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .controls .sep { height: 8px; background: rgba(0, 0, 0, 0.25); }
+
+  .status {
+    left: 318px; bottom: 14px; padding: 6px 10px; transition: left 0.25s ease;
+    font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11px;
+  }
+  .status b { color: var(--text); font-weight: 600; }
+
+  .ol-attribution {
+    right: 0 !important; bottom: 0 !important; border-radius: 6px 0 0 0 !important;
+    background: rgba(18, 28, 36, 0.6) !important; max-width: none !important;
+  }
+  .ol-attribution ul { color: var(--muted) !important; font-size: 10px !important; text-shadow: none !important; }
+  .ol-attribution a { color: #cfe3ee !important; }
+  .ol-attribution button { display: none !important; }
+
+  body.side-closed .status { left: 14px; }
+
+  @media (max-width: 600px) {
+    .status { display: none; }
+    .controls { bottom: 28px; }
+    .side { width: calc(100vw - 70px); }
+    .side-toggle { left: calc(100vw - 48px); }
+    .popup { width: min(300px, 86vw); }
+  }
+</style>
+</head>
+<body>
+<div id="map" tabindex="0"></div>
+
+<div class="panel side" id="side">
+  <div class="side-head">
+    <strong>Leonida</strong>
+    <div class="sub">Grand Theft Auto VI</div>
+    <div class="tabs" id="tabs">
+      <button data-mode="all" class="sel">Tous</button>
+      <button data-mode="fav"><span class="ic">★</span> <span class="tn" data-n="fav">0</span></button>
+      <button data-mode="todo"><span class="ic">◎</span> <span class="tn" data-n="todo">0</span></button>
+      <button data-mode="done"><span class="ic">✓</span> <span class="tn" data-n="done">0</span></button>
+    </div>
+    <div id="tools-all">
+      <div class="side-tools">
+        <input id="cat-search" type="search" placeholder="Filtrer les catégories…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="side-tools">
+        <button id="all-on">Tout afficher</button>
+        <button id="all-off">Tout masquer</button>
+        <button id="fold-all">Replier</button>
+      </div>
+      <label class="opt"><input type="checkbox" id="hide-done"> Masquer les lieux visités</label>
+    </div>
+    <div id="tools-marks" class="hidden">
+      <div class="mode-title" id="mode-title"></div>
+      <div class="side-tools">
+        <button id="marks-export" title="Enregistrer toutes tes marques dans un fichier">Exporter</button>
+        <button id="marks-import" title="Recharger des marques depuis un fichier exporté">Importer</button>
+        <input type="file" id="marks-file" accept="application/json,.json" class="hidden">
+      </div>
+    </div>
+    <div class="side-count" id="side-count"></div>
+  </div>
+  <div class="side-list" id="side-list"></div>
+  <div class="side-list hidden" id="marks-list"></div>
+  <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points : Map Genie · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
+</div>
+<div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau">
+  <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+</div>
+
+<div id="popup" class="popup hidden"></div>
+
+<!-- Boutons de navigation retirés : zoom au geste, à la molette, au clavier (+ / - / 0 / F) -->
+
+<div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
+
+<script src="lib/ol.js"></script>
+<script src="donnees/points_mapgenie.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Système de coordonnées
+  // Unité de carte = 1 pixel de la carte au zoom natif 6 (34 304 x 44 288 px).
+  // x vers la droite, y vers le bas en "pixels carte" ; OpenLayers ayant l'axe
+  // y vers le haut, on stocke la coordonnée [x, -y].
+  // ---------------------------------------------------------------------------
+  const TILE = 256;
+  const NATIVE_MAX = 6;                 // dernier niveau de tuiles disponible
+  const MAX_ZOOM = 6;                   // bloqué au niveau natif des tuiles (pas de sur-zoom)
+  const LAND = [34 * TILE, -207 * TILE, 168 * TILE, -34 * TILE];   // emprise des tuiles
+  const PAD = 0.15 * (LAND[2] - LAND[0]);
+  const PAN_LIMIT = [LAND[0] - PAD, LAND[1] - PAD, LAND[2] + PAD, LAND[3] + PAD];
+
+  const toPx = (c) => ({ x: c[0], y: -c[1] });
+  const resForZoom = (z) => Math.pow(2, NATIVE_MAX - z);
+  const zoomForRes = (r) => NATIVE_MAX - Math.log2(r);
+
+  const projection = new ol.proj.Projection({
+    code: 'LEONIDA-PX',
+    units: 'pixels',
+    extent: [0, -256 * TILE, 256 * TILE, 0]
+  });
+
+  // ---------------------------------------------------------------------------
+  // Tuiles. Sur écran Retina, on déclare des tuiles de 128 px "logiques"
+  // remplies par des images de 256 px (tilePixelRatio 2) : OpenLayers charge
+  // alors le niveau plus détaillé et l'affichage reste net.
+  // ---------------------------------------------------------------------------
+  const DPR = window.devicePixelRatio || 1;
+  const HIDPI = DPR >= 1.5;
+  const gridRes = [];
+  for (let z = 0; z <= NATIVE_MAX; z++) gridRes.push(resForZoom(z) * (HIDPI ? 2 : 1));
+
+  const source = new ol.source.TileImage({
+    projection,
+    tileGrid: new ol.tilegrid.TileGrid({
+      origin: [0, 0],
+      extent: LAND,
+      resolutions: gridRes,
+      tileSize: HIDPI ? TILE / 2 : TILE
+    }),
+    tilePixelRatio: HIDPI ? 2 : 1,
+    tileUrlFunction: (c) => c && `tuiles/day/${c[0]}/${c[0]},${c[2]},${c[1]}.jpg`,
+    transition: 120,
+    interpolate: true,
+    attributions: 'Fond de carte : <a href="https://map.gtadb.org" target="_blank">gtadb.org</a> et contributeurs, CC BY 4.0 · <a href="https://openlayers.org" target="_blank">OpenLayers</a>'
+  });
+
+  // Limites du zoom exprimées en résolution (unités de carte par pixel d'écran) :
+  // - minimum de résolution = zoom max (6) : 1 pixel d'écran = 1 pixel de tuile ;
+  // - maximum de résolution = vue d'ensemble un peu élargie, calculée selon la fenêtre.
+  // La vue est recréée quand la fenêtre change de taille (OpenLayers ne permet pas
+  // de changer ces limites proprement sur une vue existante).
+  const MIN_RES = resForZoom(MAX_ZOOM);
+  function makeView(maxRes, center, res) {
+    // OpenLayers place le zoom max à un nombre ENTIER de crans sous maxResolution.
+    // On choisit donc le facteur entre crans (proche de 2) pour que ce compte tombe
+    // pile sur MIN_RES : le zoom 6 est alors atteint exactement.
+    const steps = Math.max(1, Math.ceil(Math.log2(maxRes / MIN_RES)));
+    const zoomFactor = Math.pow(maxRes / MIN_RES, 1 / steps);
+    return new ol.View({
+      projection,
+      center,
+      resolution: Math.min(maxRes, Math.max(MIN_RES, res)),
+      maxResolution: maxRes,
+      // Un poil sous MIN_RES : évite qu'un arrondi (6,9999… au lieu de 7 crans)
+      // fasse perdre le dernier cran. Le zoom réel atteint bien 6,0.
+      minResolution: MIN_RES * 0.999999,
+      zoomFactor,
+      constrainResolution: false,
+      smoothResolutionConstraint: false,   // limites nettes, atteintes exactement
+      extent: PAN_LIMIT,
+      smoothExtentConstraint: true,
+      showFullExtent: true,
+      enableRotation: false
+    });
+  }
+  let view = makeView(resForZoom(-2), ol.extent.getCenter(LAND), resForZoom(1));
+
+  const map = new ol.Map({
+    target: 'map',
+    layers: [new ol.layer.Tile({
+      source,
+      preload: 2,                 // garde les niveaux moins détaillés prêts en dessous
+      updateWhileAnimating: true,
+      updateWhileInteracting: true
+    })],
+    view,
+    controls: ol.control.defaults.defaults({
+      zoom: false, rotate: false,
+      attribution: false
+    }),
+    // On garde le glisser (avec inertie), le pincement tactile, le double-clic et
+    // le clavier. La molette/le trackpad sont gérés par notre propre code plus bas.
+    interactions: ol.interaction.defaults.defaults({
+      mouseWheelZoom: false,
+      altShiftDragRotate: false,
+      pinchRotate: false,
+      shiftDragZoom: false,
+      doubleClickZoom: true,
+      keyboard: true
+    }),
+    moveTolerance: 2
+  });
+  window.__map = map;
+
+  // Vue d'ensemble et zoom minimum (on ne peut pas trop dézoomer)
+  function fitAll(duration) {
+    view.fit(LAND, { padding: [30, 30, 30, 30], duration: duration || 0 });
+  }
+  function rebuildView(first) {
+    const size = map.getSize();
+    if (!size) return;
+    const fitRes = view.getResolutionForExtent(LAND, size);
+    // La zone de déplacement autorisée limite aussi le dézoom : on prend la plus stricte.
+    const panRes = view.getResolutionForExtent(PAN_LIMIT, size);
+    view = makeView(Math.min(fitRes * 1.35, panRes), view.getCenter(), view.getResolution());
+    view.on('change:resolution', () => { updateZoomUI(); updateClustering(); });
+    map.setView(view);
+    if (first) fitAll(0);
+    updateZoomUI();
+    updateClustering();
+  }
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { map.updateSize(); rebuildView(false); }, 120);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Zoom fluide molette / trackpad / pincement
+  // Principe : chaque évènement modifie une résolution "cible" ; à chaque image
+  // affichée, la résolution réelle s'en rapproche (instantanément pour le
+  // trackpad et le pincement, en douceur pour la molette d'une souris).
+  // Le point sous le curseur reste fixe, comme sur Google Maps.
+  // ---------------------------------------------------------------------------
+  const viewport = map.getViewport();
+  let targetRes = null, anchorPx = null, anchorCoord = null, follow = 1, raf = 0, lastEvt = 0;
+
+  const minRes = () => view.getMinResolution();
+  const maxRes = () => view.getMaxResolution();
+  const clampRes = (r) => Math.min(maxRes(), Math.max(minRes(), r));
+
+  function applyRes(r) {
+    const size = map.getSize();
+    const cx = anchorCoord[0] - (anchorPx[0] - size[0] / 2) * r;
+    const cy = anchorCoord[1] + (anchorPx[1] - size[1] / 2) * r;
+    view.setResolution(r);
+    view.setCenter([cx, cy]);
+  }
+
+  function step() {
+    raf = 0;
+    if (targetRes == null) return;
+    const cur = view.getResolution();
+    const lc = Math.log(cur), lt = Math.log(targetRes);
+    let next;
+    if (Math.abs(lt - lc) < 0.002) { next = targetRes; }
+    else { next = Math.exp(lc + (lt - lc) * follow); }
+    applyRes(next);
+    if (next !== targetRes) raf = requestAnimationFrame(step);
+    else { targetRes = null; }
+  }
+
+  function zoomBy(factor, pixel, smoothness) {
+    if (view.getAnimating()) view.cancelAnimations();
+    const now = performance.now();
+    const sameGesture = now - lastEvt < 250 && anchorPx &&
+      Math.hypot(pixel[0] - anchorPx[0], pixel[1] - anchorPx[1]) <= 2;
+    lastEvt = now;
+    const base = targetRes == null ? view.getResolution() : targetRes;
+    // Pendant un même geste, le point d'ancrage ne bouge pas : même si la vue a
+    // été bloquée par les limites, ce point revient sous le curseur ensuite.
+    if (!sameGesture) {
+      anchorPx = pixel;
+      anchorCoord = map.getCoordinateFromPixel(pixel);
+    }
+    targetRes = clampRes(base * factor);
+    follow = smoothness;
+    if (!raf) raf = requestAnimationFrame(step);
+  }
+
+  // Heuristique : un trackpad envoie des deltas en pixels, petits et souvent
+  // non entiers ; une molette de souris envoie des crans plus gros et réguliers.
+  function isTrackpad(e) {
+    if (e.deltaMode !== 0) return false;
+    if (e.deltaX !== 0) return true;
+    return Math.abs(e.deltaY) < 50 || !Number.isInteger(e.deltaY);
+  }
+
+  viewport.addEventListener('wheel', (e) => {
+    // Dans la fiche d'un point, la molette fait défiler le texte au lieu de zoomer
+    if (e.target.closest && e.target.closest('.popup')) return;
+    e.preventDefault();
+    // Si Safari envoie aussi ses évènements "gesture", on les laisse gérer le pincement
+    // pour ne pas zoomer deux fois.
+    if (e.ctrlKey && gestureStartRes != null) return;
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 32;
+    else if (e.deltaMode === 2) dy *= window.innerHeight;
+    const px = map.getEventPixel(e);
+    let k, smooth;
+    if (e.ctrlKey) { k = 0.02; smooth = 1; }        // pincement trackpad (Chrome, Firefox)
+    else if (isTrackpad(e)) { k = 0.006; smooth = 1; } // glissement à deux doigts
+    else { k = 0.0035; smooth = 0.28; }                // molette de souris : un cran ≈ ½ niveau
+    zoomBy(Math.exp(dy * k), px, smooth);
+  }, { passive: false });
+
+  // Pincement trackpad sous Safari (évènements "gesture" propres à WebKit)
+  let gestureStartRes = null;
+  viewport.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+    gestureStartRes = view.getResolution();
+    anchorPx = map.getEventPixel(e);
+    anchorCoord = map.getCoordinateFromPixel(anchorPx);
+  });
+  viewport.addEventListener('gesturechange', (e) => {
+    e.preventDefault();
+    if (gestureStartRes == null) return;
+    targetRes = clampRes(gestureStartRes / e.scale);
+    follow = 1;
+    if (!raf) raf = requestAnimationFrame(step);
+  });
+  viewport.addEventListener('gestureend', (e) => { e.preventDefault(); gestureStartRes = null; });
+
+  // ---------------------------------------------------------------------------
+  // Boutons, clavier, indicateurs
+  // ---------------------------------------------------------------------------
+  const animZoom = (delta) => {
+    targetRes = null;
+    view.animate({ zoom: view.getZoom() + delta, duration: 260, easing: ol.easing.easeOut });
+  };
+  function toggleFullscreen() {
+    const el = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) { const f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) f.call(el); }
+    else { const f = document.exitFullscreen || document.webkitExitFullscreen; if (f) f.call(document); }
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.key === 'Escape') closePopup();
+    if (e.key === '0' || e.key === 'Home') { targetRes = null; fitAll(450); }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  const zEl = document.getElementById('z'), xEl = document.getElementById('cx'), yEl = document.getElementById('cy');
+  function updateZoomUI() {
+    const r = view.getResolution();
+    if (!r) return;
+    zEl.textContent = zoomForRes(r).toFixed(1);
+  }
+  map.on('pointermove', (e) => {
+    const p = toPx(e.coordinate);
+    xEl.textContent = Math.round(p.x);
+    yEl.textContent = Math.round(p.y);
+  });
+  const mapEl = document.getElementById('map');
+  map.on('pointerdrag', () => mapEl.classList.add('dragging'));
+  map.on('moveend', () => mapEl.classList.remove('dragging'));
+
+  // ===========================================================================
+  // POINTS D'INTÉRÊT (données Map Genie converties, voir donnees/calage_mapgenie.json)
+  // ===========================================================================
+  const DATA = window.MG_DATA;
+  const MEDIA = DATA.mediaPrefix;
+  const STORE_KEY = 'leonida.categories.v1';
+
+  // Une couleur par groupe (Map Genie donne la même couleur à presque toutes les catégories)
+  const GROUP_COLORS = ['#ffd166', '#ef476f', '#4cc9f0', '#c77dff', '#f8961e', '#90be6d', '#43aa8b',
+    '#f72585', '#4895ef', '#b5838d', '#ff9f1c', '#2ec4b6', '#e76f51', '#a8dadc', '#ffafcc'];
+  const groups = DATA.groups.slice().sort((a, b) => a.order - b.order);
+  const groupColor = {};
+  groups.forEach((g, i) => { groupColor[g.id] = GROUP_COLORS[i % GROUP_COLORS.length]; });
+  const catById = {};
+  DATA.categories.forEach(c => { catById[c.id] = c; });
+  const regionById = {};
+  DATA.regions.forEach(r => { regionById[r.id] = r.title; });
+  const countByCat = {};
+  DATA.locations.forEach(l => { countByCat[l.c] = (countByCat[l.c] || 0) + 1; });
+
+  // Catégories affichées : mémorisées dans le navigateur, toutes par défaut
+  let enabled;
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    enabled = new Set(Array.isArray(saved) ? saved : DATA.categories.map(c => c.id));
+  } catch (e) { enabled = new Set(DATA.categories.map(c => c.id)); }
+  const saveEnabled = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify([...enabled])); } catch (e) {} };
+
+  // Une "feature" OpenLayers par point ; y inversé (OpenLayers a l'axe y vers le haut)
+  const allFeatures = DATA.locations.map(l => {
+    const f = new ol.Feature({ geometry: new ol.geom.Point([l.x, -l.y]) });
+    f.set('loc', l);
+    f.set('color', groupColor[catById[l.c].group_id] || '#fff');
+    return f;
+  });
+
+  // --- Marques : favori (indépendant) et statut "à visiter" / "visité" (exclusifs) ---
+  const MARKS_KEY = 'leonida.marques.v1';
+  let marks = {};
+  try { marks = JSON.parse(localStorage.getItem(MARKS_KEY) || '{}') || {}; } catch (e) { marks = {}; }
+  const saveMarks = () => { try { localStorage.setItem(MARKS_KEY, JSON.stringify(marks)); } catch (e) {} };
+  const markOf = (id) => marks[id] || {};
+  function setMark(id, kind) {
+    const m = Object.assign({}, markOf(id));
+    if (kind === 'fav') m.fav = !m.fav;
+    else m.st = (m.st === kind) ? undefined : kind;   // re-cliquer retire le statut
+    if (!m.fav) delete m.fav;
+    if (!m.st) delete m.st;
+    if (Object.keys(m).length) { m.t = Date.now(); marks[id] = m; } else delete marks[id];
+    saveMarks();
+  }
+  const hasMark = (id, kind) => kind === 'fav' ? !!markOf(id).fav : markOf(id).st === kind;
+
+  let mode = 'all';            // all | fav | todo | done
+  let hideDone = false;
+  try { hideDone = localStorage.getItem('leonida.masquerVisites') === '1'; } catch (e) {}
+
+  const pointSource = new ol.source.Vector();
+  function refreshPoints() {
+    pointSource.clear(true);
+    let list;
+    if (mode === 'all') list = allFeatures.filter(f => enabled.has(f.get('loc').c) && !(hideDone && hasMark(f.get('loc').id, 'done')));
+    else list = allFeatures.filter(f => hasMark(f.get('loc').id, mode));
+    pointSource.addFeatures(list);
+    updateCounts();
+    if (mode !== 'all') renderMarksList();
+  }
+
+  // Regroupement en bulles quand on est loin ; désactivé à partir du zoom 4
+  const CLUSTER_OFF_ZOOM = 4;
+  const clusterSource = new ol.source.Cluster({ distance: 34, minDistance: 10, source: pointSource });
+
+  const styleCache = {};
+  function hexA(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+  // Pastille + marques : anneau doré = favori, anneau blanc = à visiter, estompé avec coche = visité
+  function pointStyle(color, selected, m) {
+    const fav = !!m.fav, st = m.st || '';
+    // Les lieux visités ne sont estompés que dans l'onglet "Tous" (dans l'onglet "Visités" ils doivent rester bien visibles)
+    const dim = st === 'done' && mode === 'all';
+    const k = color + (selected ? 's' : '') + (fav ? 'f' : '') + st + (dim ? 'd' : '');
+    if (!styleCache[k]) {
+      const done = dim;
+      const r = selected ? 8 : 6;
+      const styles = [];
+      if (fav) styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: r + 4.5, fill: new ol.style.Fill({ color: 'rgba(255, 209, 102, 0.25)' }), stroke: new ol.style.Stroke({ color: '#ffd166', width: 2.5 }) }) }));
+      if (st === 'todo') styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: r + (fav ? 8 : 4), stroke: new ol.style.Stroke({ color: '#ffffff', width: 2, lineDash: [3, 2.5] }) }) }));
+      styles.push(new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: r,
+          fill: new ol.style.Fill({ color: done ? hexA(color, 0.45) : color }),
+          stroke: new ol.style.Stroke({ color: selected ? '#ffffff' : (done ? 'rgba(10, 18, 24, 0.5)' : 'rgba(10, 18, 24, 0.85)'), width: selected ? 3 : 1.6 })
+        }),
+        text: st === 'done' ? new ol.style.Text({ text: '✓', font: '700 10px -apple-system, BlinkMacSystemFont, sans-serif', fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(0, 0, 0, 0.6)', width: 2 }) }) : undefined
+      }));
+      styleCache[k] = styles;
+    }
+    return styleCache[k];
+  }
+  function clusterStyle(n) {
+    const k = 'c' + n;
+    if (!styleCache[k]) {
+      const r = n < 10 ? 13 : n < 100 ? 16 : n < 1000 ? 20 : 24;
+      styleCache[k] = new ol.style.Style({
+        image: new ol.style.Circle({
+          radius: r,
+          fill: new ol.style.Fill({ color: 'rgba(18, 28, 36, 0.86)' }),
+          stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.85)', width: 2 })
+        }),
+        text: new ol.style.Text({
+          text: String(n),
+          font: '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fill: new ol.style.Fill({ color: '#fff' })
+        })
+      });
+    }
+    return styleCache[k];
+  }
+  let selectedId = null;
+  const poiLayer = new ol.layer.Vector({
+    source: clusterSource,
+    updateWhileAnimating: true,
+    updateWhileInteracting: true,
+    style: (cf) => {
+      const fs = cf.get('features');
+      if (fs.length > 1) return clusterStyle(fs.length);
+      const f = fs[0];
+      return pointStyle(f.get('color'), f.get('loc').id === selectedId, markOf(f.get('loc').id));
+    }
+  });
+  map.addLayer(poiLayer);
+
+  function updateClustering() {
+    const z = zoomForRes(view.getResolution());
+    clusterSource.setDistance(z >= CLUSTER_OFF_ZOOM ? 0 : 34);
+  }
+
+  // --- Panneau des catégories ---
+  const listEl = document.getElementById('side-list');
+  const countEl = document.getElementById('side-count');
+  const searchEl = document.getElementById('cat-search');
+  const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const esc = (s) => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+  function buildPanel() {
+    const html = [];
+    for (const g of groups) {
+      const col = groupColor[g.id];
+      const cats = g.cats.map(id => catById[id]).filter(Boolean).sort((a, b) => a.order - b.order);
+      html.push(`<div class="grp" data-g="${g.id}">
+        <div class="grp-head"><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+        <span class="dot" style="background:${col}"></span><span class="name">${esc(g.title)}</span>
+        <span class="tog" data-tog="${g.id}">tout / rien</span></div><div class="cats">`);
+      for (const c of cats) {
+        html.push(`<div class="cat" data-c="${c.id}" data-name="${esc((c.title + ' ' + g.title).toLowerCase())}">
+          <span class="box" style="--col:${col}">${CHECK}</span><span class="label">${esc(c.title)}</span><span class="n">${countByCat[c.id] || 0}</span></div>`);
+      }
+      html.push('</div></div>');
+    }
+    listEl.innerHTML = html.join('');
+    syncChecks();
+  }
+  function syncChecks() {
+    listEl.querySelectorAll('.cat').forEach(el => {
+      const id = +el.dataset.c, on = enabled.has(id);
+      el.classList.toggle('on', on);
+      const box = el.querySelector('.box');
+      box.style.background = on ? box.style.getPropertyValue('--col') : 'transparent';
+    });
+  }
+  function updateCounts() {
+    const shown = pointSource.getFeatures().length;
+    if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
+    else countEl.innerHTML = '';
+    const n = { fav: 0, todo: 0, done: 0 };
+    for (const id in marks) { const m = marks[id]; if (m.fav) n.fav++; if (m.st) n[m.st]++; }
+    document.querySelectorAll('.tabs .tn').forEach(el => { el.textContent = n[el.dataset.n]; });
+  }
+  listEl.addEventListener('click', (e) => {
+    const tog = e.target.closest('[data-tog]');
+    if (tog) {
+      e.stopPropagation();
+      const g = groups.find(x => x.id === +tog.dataset.tog);
+      const allOn = g.cats.every(id => enabled.has(id));
+      g.cats.forEach(id => allOn ? enabled.delete(id) : enabled.add(id));
+      saveEnabled(); syncChecks(); refreshPoints(); return;
+    }
+    const head = e.target.closest('.grp-head');
+    if (head) { head.parentElement.classList.toggle('collapsed'); return; }
+    const cat = e.target.closest('.cat');
+    if (cat) {
+      const id = +cat.dataset.c;
+      enabled.has(id) ? enabled.delete(id) : enabled.add(id);
+      saveEnabled(); syncChecks(); refreshPoints();
+    }
+  });
+  document.getElementById('all-on').onclick = () => { DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
+  document.getElementById('all-off').onclick = () => { enabled.clear(); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
+  const foldBtn = document.getElementById('fold-all');
+  foldBtn.onclick = () => {
+    const grps = listEl.querySelectorAll('.grp');
+    const fold = [...grps].some(g => !g.classList.contains('collapsed'));
+    grps.forEach(g => g.classList.toggle('collapsed', fold));
+    foldBtn.textContent = fold ? 'Déplier' : 'Replier';
+  };
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    listEl.querySelectorAll('.grp').forEach(g => {
+      let any = false;
+      g.querySelectorAll('.cat').forEach(c => {
+        const ok = !q || c.dataset.name.includes(q);
+        c.classList.toggle('hidden', !ok); any = any || ok;
+      });
+      g.classList.toggle('hidden', !any);
+      if (q) g.classList.remove('collapsed');
+    });
+  });
+  document.getElementById('side-toggle').onclick = () => {
+    const closed = document.getElementById('side').classList.toggle('closed');
+    document.body.classList.toggle('side-closed', closed);
+  };
+
+  // --- Fiche d'un point ---
+  const popupEl = document.getElementById('popup');
+  const popup = new ol.Overlay({ element: popupEl, stopEvent: true, positioning: 'top-left' });
+  map.addOverlay(popup);
+
+  // Mise en forme minimale des descriptions Map Genie (gras, italique, listes, liens)
+  function md(text) {
+    const lines = esc(text).split(/\r?\n/);
+    const out = []; let inList = false;
+    const inline = (s) => s
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+      .replace(/(^|[^*])\*(?!\s)(.+?)\*/g, '$1<i>$2</i>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    for (const raw of lines) {
+      const l = raw.trim();
+      const m = l.match(/^[-*•]\s+(.*)$/);
+      if (m) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>' + inline(m[1]) + '</li>'); continue; }
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (l) out.push('<p>' + inline(l) + '</p>');
+    }
+    if (inList) out.push('</ul>');
+    return out.join('');
+  }
+
+  function openPopup(f) {
+    popupFeature = f;
+    const l = f.get('loc');
+    const c = catById[l.c];
+    const g = groups.find(x => x.id === c.group_id);
+    const col = f.get('color');
+    const imgs = (l.m || []).map(u => /^https?:/.test(u) ? u : MEDIA + u);
+    selectedId = l.id; poiLayer.changed();
+    let h = '<button class="close" aria-label="Fermer">×</button>';
+    if (imgs.length) {
+      h += `<img class="ph" src="${esc(imgs[0])}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+      if (imgs.length > 1) h += '<div class="ph-strip">' + imgs.map((u, i) => `<img src="${esc(u)}" data-i="${i}" class="${i ? '' : 'sel'}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('') + '</div>';
+    }
+    h += `<div class="body${imgs.length ? '' : ' noimg'}">
+      <div class="cat-line"><span class="dot" style="background:${col}"></span>${esc(g ? g.title : '')} · ${esc(c.title)}</div>
+      <h3>${esc(l.t)}</h3>
+      <div class="region">${esc(regionById[l.r] || '')}</div>
+      <div class="marks">
+        <button data-mark="fav" class="${hasMark(l.id, 'fav') ? 'on' : ''}">★ Favori</button>
+        <button data-mark="todo" class="${hasMark(l.id, 'todo') ? 'on' : ''}">◎ À visiter</button>
+        <button data-mark="done" class="${hasMark(l.id, 'done') ? 'on' : ''}">✓ Visité</button>
+      </div>
+      ${nearHtml(f)}
+      ${l.d ? '<div class="desc">' + md(l.d) + '</div>' : ''}
+    </div>`;
+    popupEl.innerHTML = h;
+    popupEl.classList.remove('hidden');
+    popupEl.querySelector('.close').onclick = closePopup;
+    const main = popupEl.querySelector('.ph');
+    if (main) {
+      // L'erreur de chargement peut survenir avant qu'on écoute : on vérifie aussi l'état actuel
+      const drop = () => { main.remove(); const st = popupEl.querySelector('.ph-strip'); if (st) st.remove(); popupEl.querySelector('.body').classList.add('noimg'); };
+      main.addEventListener('error', drop);
+      if (main.complete && main.naturalWidth === 0) drop();
+    }
+    popupEl.querySelectorAll('.ph-strip img').forEach(im => im.onclick = () => {
+      main.src = imgs[+im.dataset.i];
+      popupEl.querySelectorAll('.ph-strip img').forEach(x => x.classList.toggle('sel', x === im));
+    });
+    popup.setPosition(f.getGeometry().getCoordinates());
+    // Si la fiche sort de l'écran, on déplace la carte juste ce qu'il faut
+    setTimeout(() => {
+      const r = popupEl.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+      const sideW = document.body.classList.contains('side-closed') ? 0 : 310;
+      let dx = 0, dy = 0;
+      if (r.top < 14) dy = r.top - 14;
+      if (r.left < sideW + 14) dx = r.left - (sideW + 14);
+      if (r.right > vw - 70) dx = r.right - (vw - 70);
+      if (dx || dy) {
+        const res = view.getResolution(), ctr = view.getCenter();
+        view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
+      }
+    }, 80);
+  }
+  // Points affichés collés à celui-ci (moins de 8 px d'écran) : liste cliquable dans la fiche
+  function nearby(f) {
+    const res = view.getResolution(), c = f.getGeometry().getCoordinates(), r = 8 * res;
+    return pointSource.getFeaturesInExtent([c[0] - r, c[1] - r, c[0] + r, c[1] + r]).filter(o => o !== f);
+  }
+  function nearHtml(f) {
+    const n = nearby(f);
+    if (!n.length) return '';
+    return '<div class="near">Aussi ici : ' + n.map(o => `<a href="#" data-near="${o.get('loc').id}">${esc(o.get('loc').t)}</a>`).join(', ') + '</div>';
+  }
+  let popupFeature = null;
+  popupEl.addEventListener('click', (e) => {
+    const mb = e.target.closest('[data-mark]');
+    if (mb && popupFeature) {
+      const id = popupFeature.get('loc').id;
+      setMark(id, mb.dataset.mark);
+      popupEl.querySelectorAll('.marks button').forEach(b => b.classList.toggle('on', hasMark(id, b.dataset.mark)));
+      poiLayer.changed();
+      // Si le point ne correspond plus à la vue (onglet de marque, visités masqués), on le laisse affiché
+      // jusqu'à la fermeture de la fiche pour ne pas le faire disparaître sous la souris.
+      updateCounts();
+      if (mode !== 'all') renderMarksList();
+      return;
+    }
+    const a = e.target.closest('[data-near]');
+    if (!a) return;
+    e.preventDefault();
+    const f = pointSource.getFeatures().find(o => o.get('loc').id === +a.dataset.near);
+    if (f) openPopup(f);
+  });
+  function closePopup() {
+    const wasOpen = popupFeature !== null;
+    popupFeature = null;
+    popupEl.classList.add('hidden'); popup.setPosition(undefined);
+    if (wasOpen) refreshPoints();
+    if (selectedId !== null) { selectedId = null; poiLayer.changed(); }
+  }
+
+  // 'click' (immédiat) plutôt que 'singleclick' (attend ~250 ms pour exclure un double-clic,
+  // ce qui faisait rater des clics rapprochés sur deux points)
+  map.on('click', (e) => {
+    // On récupère tout ce qui est sous le clic et on garde le plus proche du curseur
+    const hits = [];
+    map.forEachFeatureAtPixel(e.pixel, f => { hits.push(f); }, { layerFilter: l => l === poiLayer, hitTolerance: 5 });
+    if (!hits.length) { closePopup(); return; }
+    const dist = (f) => { const p = map.getPixelFromCoordinate(f.getGeometry().getCoordinates()); return Math.hypot(p[0] - e.pixel[0], p[1] - e.pixel[1]); };
+    hits.sort((a, b) => dist(a) - dist(b));
+    const hit = hits[0];
+    const fs = hit.get('features');
+    if (fs.length > 1) {
+      // Bulle : on zoome sur son contenu
+      const ext = ol.extent.boundingExtent(fs.map(f => f.getGeometry().getCoordinates()));
+      targetRes = null;
+      view.fit(ext, { padding: [120, 120, 120, 420], duration: 450, maxZoom: view.getZoomForResolution(resForZoom(CLUSTER_OFF_ZOOM + 0.6)) });
+    } else {
+      openPopup(fs[0]);
+    }
+  });
+  map.on('pointermove', (e) => {
+    if (e.dragging) return;
+    const over = map.hasFeatureAtPixel(e.pixel, { layerFilter: l => l === poiLayer, hitTolerance: 4 });
+    map.getViewport().style.cursor = over ? 'pointer' : '';
+  });
+
+  // --- Onglets et liste des lieux marqués ---
+  const marksListEl = document.getElementById('marks-list');
+  const MODE_TITLES = { fav: 'Tes <b>favoris</b>', todo: 'Tes lieux <b>à visiter</b>', done: 'Tes lieux <b>visités</b>' };
+  const MODE_EMPTY = {
+    fav: 'Aucun favori pour l\'instant. Clique sur un point de la carte puis sur « ★ Favori ».',
+    todo: 'Aucun lieu à visiter pour l\'instant. Clique sur un point puis sur « ◎ À visiter ».',
+    done: 'Aucun lieu visité pour l\'instant. Clique sur un point puis sur « ✓ Visité ».'
+  };
+  const byId = {};
+  allFeatures.forEach(f => { byId[f.get('loc').id] = f; });
+
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
+    const all = m === 'all';
+    document.getElementById('tools-all').classList.toggle('hidden', !all);
+    document.getElementById('tools-marks').classList.toggle('hidden', all);
+    listEl.classList.toggle('hidden', !all);
+    marksListEl.classList.toggle('hidden', all);
+    if (!all) document.getElementById('mode-title').innerHTML = MODE_TITLES[m];
+    closePopup();
+    refreshPoints();
+  }
+  function renderMarksList() {
+    const ids = Object.keys(marks).filter(id => hasMark(id, mode) && byId[id]);
+    if (!ids.length) { marksListEl.innerHTML = `<div class="empty">${MODE_EMPTY[mode]}</div>`; return; }
+    // Classement : région puis nom
+    ids.sort((a, b) => {
+      const la = byId[a].get('loc'), lb = byId[b].get('loc');
+      return (regionById[la.r] || '').localeCompare(regionById[lb.r] || '', 'fr') || la.t.localeCompare(lb.t, 'fr');
+    });
+    marksListEl.innerHTML = ids.map(id => {
+      const f = byId[id], l = f.get('loc'), m = markOf(id), c = catById[l.c];
+      const b = (m.fav ? '<span class="f">★</span>' : '') + (m.st === 'todo' ? ' <span class="o">◎</span>' : '') + (m.st === 'done' ? ' <span class="d">✓</span>' : '');
+      return `<div class="mk" data-id="${id}"><span class="dot" style="background:${f.get('color')}"></span>
+        <div><div class="t">${esc(l.t)}</div><div class="s">${esc(c.title)} · ${esc(regionById[l.r] || '')}</div></div>
+        <span class="badges">${b}</span></div>`;
+    }).join('');
+  }
+  marksListEl.addEventListener('click', (e) => {
+    const it = e.target.closest('.mk');
+    if (!it) return;
+    const f = byId[it.dataset.id];
+    targetRes = null;
+    const res = Math.min(view.getResolution(), resForZoom(4.6));
+    view.animate({ center: f.getGeometry().getCoordinates(), resolution: res, duration: 450 }, () => openPopup(f));
+  });
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]');
+    if (b) setMode(b.dataset.mode);
+  });
+  const hideDoneEl = document.getElementById('hide-done');
+  hideDoneEl.checked = hideDone;
+  hideDoneEl.onchange = () => {
+    hideDone = hideDoneEl.checked;
+    try { localStorage.setItem('leonida.masquerVisites', hideDone ? '1' : '0'); } catch (e) {}
+    refreshPoints();
+  };
+
+  // Export / import des marques (sauvegarde dans un fichier)
+  document.getElementById('marks-export').onclick = () => {
+    const data = { app: 'leonida-carte', version: 1, exported: new Date().toISOString(), marks };
+    const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'leonida-marques-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const fileEl = document.getElementById('marks-file');
+  document.getElementById('marks-import').onclick = () => fileEl.click();
+  fileEl.onchange = async () => {
+    const file = fileEl.files[0];
+    fileEl.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const incoming = data && data.marks;
+      if (!incoming || typeof incoming !== 'object') throw new Error('format');
+      let n = 0;
+      for (const id in incoming) {
+        if (!byId[id]) continue;
+        const m = incoming[id], cur = markOf(id);
+        // Fusion : on garde la marque la plus récente
+        if (!marks[id] || (m.t || 0) >= (cur.t || 0)) { marks[id] = m; n++; }
+      }
+      saveMarks(); refreshPoints(); poiLayer.changed();
+      alertMsg(n + ' lieu(x) importé(s).');
+    } catch (err) {
+      alertMsg('Ce fichier n\'est pas un export de marques valide.');
+    }
+  };
+  function alertMsg(t) { document.getElementById('mode-title').innerHTML = MODE_TITLES[mode] + ' · ' + esc(t); }
+
+  buildPanel();
+  refreshPoints();
+
+  rebuildView(true);   // limites de zoom adaptées à la fenêtre + vue d'ensemble
+  mapEl.focus();
+})();
+</script>
+</body>
+</html>

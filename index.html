@@ -7,8 +7,8 @@
 <link rel="stylesheet" href="lib/ol.css">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
-  @font-face { font-family: 'Oswald'; font-weight: 300; font-display: swap; src: url(lib/polices/oswald-latin-300-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Montserrat'; font-weight: 500; font-display: swap; src: url(lib/polices/montserrat-latin-500-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 600; font-display: swap; src: url(lib/polices/montserrat-latin-600-normal.woff2) format('woff2'); }
   :root {
     --ocean: #2f90b0;
     --panel: rgba(18, 28, 36, 0.82);
@@ -834,7 +834,7 @@
       return z >= 3.5 ? borderStyles[3] : null;
     }
   });
-  // Style inspiré de l'affiche « Visit Leonida » : texte blanc sans contour, posé sur le fond de carte.
+  // Style inspiré de l'affiche « Visit Leonida » : texte blanc à fin bord gris, posé sur le fond de carte.
   //  - comtés : grandes capitales étroites (Oswald) ;
   //  - grandes villes : capitales larges (Montserrat) ;
   //  - villes : minuscules grasses (Montserrat) ;
@@ -850,10 +850,10 @@
     return 'quartier';
   }
   const LABEL_KINDS = {
-    comte:    { font: '300 26px ' + OSWALD,      upper: true },   // étroit
-    grande:   { font: '500 17px ' + MONTSERRAT,  upper: true },   // large, comme VICE CITY sur l'affiche
-    ville:    { font: '500 13.5px ' + MONTSERRAT, upper: false },
-    quartier: { font: '300 13px ' + OSWALD,      upper: true }
+    comte:    { font: '400 26px ' + OSWALD,      upper: true },   // étroit
+    grande:   { font: '600 17px ' + MONTSERRAT,  upper: true },   // large, comme VICE CITY sur l'affiche
+    ville:    { font: '600 13.5px ' + MONTSERRAT, upper: false },
+    quartier: { font: '400 13px ' + OSWALD,      upper: true }
   };
   const labelStyleCache = {};
   function labelStyle(r) {
@@ -861,7 +861,8 @@
     if (!labelStyleCache[k]) {
       const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
       labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
-        fill: new ol.style.Fill({ color: '#ffffff' }) }) });
+        fill: new ol.style.Fill({ color: '#ffffff' }),
+        stroke: new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 1.6 }) }) });   // mini bord gris
     }
     return labelStyleCache[k];
   }
@@ -881,7 +882,7 @@
   map.getLayers().insertAt(1, borderLayer);
 
   if (document.fonts && document.fonts.load) {
-    Promise.all(['300 26px Oswald', '500 14px Montserrat'].map(f => document.fonts.load(f)))
+    Promise.all(['400 26px Oswald', '600 14px Montserrat'].map(f => document.fonts.load(f)))
       .then(() => { labelLayer.changed(); }).catch(() => {});
   }
   // Zone mise en surbrillance après une recherche de zone

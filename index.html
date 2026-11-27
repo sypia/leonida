@@ -42,6 +42,12 @@
   .side-head { padding: 12px 14px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
   .side-head strong { font-size: 15px; letter-spacing: 0.02em; }
   .side-head .sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .side-head { position: relative; }
+  /* Langue : version originale (EN) ou traduite (FR) */
+  .lang { position: absolute; top: 12px; right: 14px; display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: rgba(0, 0, 0, 0.25); }
+  .lang button { height: 24px; min-width: 34px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; }
+  .lang button:hover { color: var(--text); }
+  .lang button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
   .side-tools { display: flex; gap: 6px; margin-top: 10px; }
   .side-tools input {
     flex: 1; min-width: 0; height: 30px; padding: 0 10px; border-radius: 7px;
@@ -252,6 +258,10 @@
   <div class="side-head">
     <strong>Leonida</strong>
     <div class="sub">Grand Theft Auto VI</div>
+    <div class="lang" id="lang" role="group" aria-label="Langue des fiches">
+      <button data-lang="en" title="Version originale (anglais)">EN</button>
+      <button data-lang="fr" title="Version traduite en français">FR</button>
+    </div>
     <div class="tabs" id="tabs">
       <button data-mode="all" class="sel">Tous</button>
       <button data-mode="fav"><span class="ic">★</span> <span class="tn" data-n="fav">0</span></button>
@@ -305,6 +315,8 @@
 <script src="donnees/points_mapgenie.js"></script>
 <script src="lib/icones.js"></script>
 <script src="donnees/regions.js"></script>
+<script src="donnees/traduction_fr.js"></script>
+<script src="donnees/lieux_fr.js"></script>
 <script>
 (function () {
   'use strict';
@@ -587,11 +599,47 @@
   const catById = {};
   DATA.categories.forEach(c => { catById[c.id] = c; });
   const regionById = {};
-  DATA.regions.forEach(r => { regionById[r.id] = r.title; });
+  // --- Langue des fiches : EN = version originale Map Genie (jamais modifiée), FR = traduction ---
+  // Les textes d'origine sont gardés dans .en / .tEn / .dEn ; .title / .t / .d portent la langue affichée.
+  const TR = window.TRAD_FR;
+  const LANG_KEY = 'leonida.langue.v1';
+  let lang = 'en';
+  try { if (TR && localStorage.getItem(LANG_KEY) === 'fr') lang = 'fr'; } catch (e) {}
+  const REGIONS_ALL = window.REGIONS || [];
+  DATA.groups.forEach(g => { g.en = g.title; });
+  DATA.categories.forEach(c => { c.en = c.title; });
+  DATA.regions.forEach(r => { r.en = r.title; });
+  DATA.locations.forEach(l => { l.tEn = l.t; l.dEn = l.d; });
+  REGIONS_ALL.forEach(r => { r.en = r.t; });
+  let frReady = false;
+  function prepareFr() {
+    if (frReady || !TR) return;
+    frReady = true;
+    const gEn = {};
+    DATA.groups.forEach(g => { g.fr = TR.groupe(g.en); gEn[g.id] = g.en; });
+    DATA.categories.forEach(c => { c.fr = TR.categorie(c.en); });
+    DATA.regions.forEach(r => { r.fr = TR.region(r.en); });
+    REGIONS_ALL.forEach(r => { r.fr = TR.region(r.en); });
+    DATA.locations.forEach(l => {
+      const c = catById[l.c];
+      l.tFr = TR.titre(l.tEn, c.en, gEn[c.group_id]);
+      l.dFr = l.dEn ? TR.desc(l.dEn, l.id) : l.dEn;
+    });
+  }
+  function applyLangData() {
+    if (lang === 'fr') prepareFr();
+    const fr = lang === 'fr';
+    DATA.groups.forEach(g => { g.title = fr ? g.fr : g.en; });
+    DATA.categories.forEach(c => { c.title = fr ? c.fr : c.en; });
+    DATA.regions.forEach(r => { r.title = fr ? r.fr : r.en; regionById[r.id] = r.title; });
+    REGIONS_ALL.forEach(r => { r.t = fr ? r.fr : r.en; });
+    DATA.locations.forEach(l => { l.t = fr ? l.tFr : l.tEn; l.d = fr ? l.dFr : l.dEn; });
+  }
+  applyLangData();
   // --- Pictogrammes (lib/icones.js) ---
   const ICONES = window.ICONES || {}, ICONE_CAT = window.ICONE_CAT || {}, ICONE_GROUPE = window.ICONE_GROUPE || {};
   const groupOf = (c) => groups.find(x => x.id === c.group_id);
-  const iconKeyOf = (c) => ICONE_CAT[c.title] || (groupOf(c) && ICONE_GROUPE[groupOf(c).title]) || 'star';
+  const iconKeyOf = (c) => ICONE_CAT[c.en] || (groupOf(c) && ICONE_GROUPE[groupOf(c).en]) || 'star';
   // Pictogramme en HTML (panneau, listes) : trait de la couleur courante
   const iconHtml = (key) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONES[key] || ICONES.star}</svg>`;
   // Pastille ronde colorée avec pictogramme sombre (listes)
@@ -725,14 +773,14 @@
 
   // --- Noms de lieux et frontières (donnees/regions.js, contours Map Genie) ---
   // Niveaux : 1 = comté, 2 = ville / zone, 3-4 = quartier / île. Affichage selon le zoom.
-  const REGIONS = (window.REGIONS || []).filter(r => !/runway/i.test(r.t));
+  const REGIONS = REGIONS_ALL.filter(r => !/runway/i.test(r.en));
   const regionGeom = {};
   const borderSource = new ol.source.Vector(), labelSource = new ol.source.Vector();
   REGIONS.forEach(r => {
     const polys = r.g.map(poly => poly.map(ring => ring.map(([x, y]) => [x, -y])));
     regionGeom[r.id] = polys;
     polys.forEach(poly => { const f = new ol.Feature(new ol.geom.Polygon(poly)); f.set('lvl', r.n); borderSource.addFeature(f); });
-    if (r.c) { const f = new ol.Feature(new ol.geom.Point([r.c[0], -r.c[1]])); f.set('lvl', r.n); f.set('name', r.t); labelSource.addFeature(f); }
+    if (r.c) { const f = new ol.Feature(new ol.geom.Point([r.c[0], -r.c[1]])); f.set('lvl', r.n); f.set('reg', r); labelSource.addFeature(f); }
   });
   const LAYERS_KEY = 'leonida.affichage.v1';
   let showNames = true, showBorders = true;
@@ -777,7 +825,7 @@
       if (n === 1 && z > 2.8) return null;
       if (n === 2 && (z < 1.3 || z > 5.2)) return null;
       if (n >= 3 && z < 3.3) return null;
-      return labelStyle(f.get('name'), n);
+      return labelStyle(f.get('reg').t, n);
     }
   });
   // Frontières sous les marqueurs, noms au-dessus (sinon les bulles les cachent).
@@ -813,6 +861,7 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
   function buildPanel() {
+    prepareFr();   // pour chercher une catégorie dans les deux langues
     const html = [];
     for (const g of groups) {
       const col = groupColor[g.id];
@@ -822,7 +871,7 @@
         <span class="dot" style="background:${col}"></span><span class="name">${esc(g.title)}</span>
         <span class="tog" data-tog="${g.id}">tout / rien</span></div><div class="cats">`);
       for (const c of cats) {
-        html.push(`<div class="cat" data-c="${c.id}" data-name="${esc((c.title + ' ' + g.title).toLowerCase())}">
+        html.push(`<div class="cat" data-c="${c.id}" data-name="${esc([c.en, c.fr || '', g.en, g.fr || ''].join(' ').toLowerCase())}">
           <span class="box" style="--col:${col}">${CHECK}</span><span class="ico" style="color:${col}">${iconHtml(iconKeyOf(c))}</span><span class="label">${esc(c.title)}</span><span class="n">${countByCat[c.id] || 0}</span></div>`);
       }
       html.push('</div></div>');
@@ -877,13 +926,18 @@
   // Sans accents ni majuscules ; tous les mots tapés doivent être trouvés.
   const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   let searchIndex = null;
+  // L'index contient les deux langues : on trouve un lieu en tapant l'anglais ou le français.
   function buildSearchIndex() {
+    prepareFr();
+    const rEn = {}, rFr = {};
+    DATA.regions.forEach(r => { rEn[r.id] = r.en; rFr[r.id] = r.fr || ''; });
     searchIndex = allFeatures.map(f => {
       const l = f.get('loc'), c = catById[l.c], g = groups.find(x => x.id === c.group_id);
-      const title = norm(l.t);
-      const meta = norm([c.title, g ? g.title : '', regionById[l.r] || ''].join(' '));
-      const desc = norm((l.d || '').replace(/[*_#>\[\]()]/g, ' '));
-      return { f, title, meta, desc };
+      const other = lang === 'fr' ? l.tEn : (l.tFr || '');
+      const title = norm(l.t), title2 = other === l.t ? '' : norm(other);
+      const meta = norm([c.en, c.fr || '', g ? g.en + ' ' + (g.fr || '') : '', rEn[l.r] || '', rFr[l.r] || ''].join(' '));
+      const desc = norm(((l.dEn || '') + ' ' + (l.dFr && l.dFr !== l.dEn ? l.dFr : '')).replace(/[*_#>\[\]()]/g, ' '));
+      return { f, title, title2, meta, desc };
     });
   }
   const placeBox = document.createElement('div');
@@ -894,13 +948,14 @@
     const words = q.split(/\s+/).filter(Boolean);
     const out = [];
     for (const it of searchIndex) {
-      const all = it.title + ' ' + it.meta + ' ' + it.desc;
+      const tt = it.title + ' | ' + it.title2;
+      const all = tt + ' ' + it.meta + ' ' + it.desc;
       if (!words.every(w => all.includes(w))) continue;
       let score;
-      if (it.title.startsWith(q)) score = 0;
-      else if (it.title.includes(q)) score = 1;
-      else if (words.every(w => it.title.includes(w))) score = 2;
-      else if (words.every(w => (it.title + ' ' + it.meta).includes(w))) score = 3;
+      if (it.title.startsWith(q) || (it.title2 && it.title2.startsWith(q))) score = 0;
+      else if (tt.includes(q)) score = 1;
+      else if (words.every(w => tt.includes(w))) score = 2;
+      else if (words.every(w => (tt + ' ' + it.meta).includes(w))) score = 3;
       else score = 4;
       out.push([score, it]);
     }
@@ -910,7 +965,7 @@
   function renderPlaceResults(q) {
     if (!q || q.length < 2) { placeBox.innerHTML = ''; return; }
     const res = searchPlaces(q);
-    const zones = REGIONS.filter(r => norm(r.t).includes(q)).sort((a, b) => a.n - b.n).slice(0, 8);
+    const zones = REGIONS.filter(r => norm(r.en + ' ' + (r.fr || '')).includes(q)).sort((a, b) => a.n - b.n).slice(0, 8);
     const zonesHtml = zones.length ? `<div class="res-head">Zones : <b>${zones.length}</b></div>` + zones.map(r =>
       `<div class="mk res zone" data-rid="${r.id}"><span class="badge zone-b">${iconHtml('landmark')}</span>
         <div><div class="t">${esc(r.t)}</div><div class="s">${['', 'Comté', 'Ville ou zone', 'Quartier', 'Quartier'][r.n] || ''}</div></div></div>`).join('') : '';
@@ -1346,6 +1401,31 @@
     shareLink(url, 'Mes lieux sur la carte de Leonida', msg);
   };
   dialogEl.addEventListener('click', (e) => { if (e.target === dialogEl) { closeDialog(); setHash(''); } });
+
+  // --- Bouton EN / FR : bascule la langue des fiches, listes et noms de la carte ---
+  const langEl = document.getElementById('lang');
+  function syncLangBtn() {
+    langEl.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.lang === lang));
+    if (!TR) langEl.style.display = 'none';
+  }
+  function setLang(l) {
+    if (l === lang || (l === 'fr' && !TR)) return;
+    lang = l;
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+    applyLangData();
+    searchIndex = null;
+    const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
+    buildPanel();
+    listEl.prepend(placeBox);
+    folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
+    searchEl.dispatchEvent(new Event('input'));
+    labelLayer.changed();
+    if (mode !== 'all') renderMarksList();
+    if (popupFeature) openPopup(popupFeature);
+    syncLangBtn();
+  }
+  langEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-lang]'); if (b) setLang(b.dataset.lang); });
+  syncLangBtn();
 
   buildPanel();
   listEl.prepend(placeBox);

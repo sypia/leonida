@@ -104,7 +104,7 @@
   .hidden { display: none !important; }
 
   /* Onglets Tous / Favoris / À visiter / Visités */
-  .tabs { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr; gap: 4px; margin-top: 10px; padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.25); }
+  .tabs { display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr 1fr; gap: 4px; margin-top: 10px; padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.25); }
   .tabs button {
     height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer;
     font: inherit; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px;
@@ -115,6 +115,8 @@
   .tabs button[data-mode="fav"] .ic { color: #ffd166; }
   .tabs button[data-mode="todo"] .ic { color: #ffffff; }
   .tabs button[data-mode="done"] .ic { color: #7ee2a8; }
+  .tabs button[data-mode="pins"] .ic { color: #ff5a5f; }
+  .tabs .ic svg { width: 13px; height: 13px; display: block; }
   .tabs .tn { font-variant-numeric: tabular-nums; font-size: 11px; }
   .opt { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--muted); cursor: pointer; }
   .opt input { margin: 0; accent-color: #7ee2a8; }
@@ -195,6 +197,7 @@
   /* Fiche en bas d'écran (téléphone) */
   .popup.sheet {
     position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 62vh; z-index: 40;
+    background: rgb(18, 28, 36);   /* opaque : le bouton du panneau ne transparaît plus */
     transform: none; border-radius: 16px 16px 0 0; overflow-y: auto; overscroll-behavior: contain;
     padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.4);
   }
@@ -215,6 +218,31 @@
   .popup .near { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
   .popup .near a { color: #8fd3f0; text-decoration: none; }
   .popup .near a:hover { text-decoration: underline; }
+
+  /* --- Épingles posées à la main --- */
+  #map .ol-layers { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .popup.pin-card { transform: translate(-50%, calc(-100% - 46px)); }
+  .pin-b { background: #ff5a5f; }
+  .popup h3.pin-txt { white-space: pre-wrap; word-break: break-word; }
+  .popup h3.pin-txt.none { color: var(--muted); font-weight: 600; }
+  .popup .pin-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 11px; }
+  .popup .pin-actions.two { grid-template-columns: 1fr 1.5fr; }
+  .popup .pin-actions button {
+    min-height: 32px; padding: 0 6px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05);
+    color: var(--text); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  }
+  .popup .pin-actions button:hover { background: rgba(255, 255, 255, 0.12); }
+  .popup .pin-actions button.primary { background: #2fbf71; border-color: #2fbf71; color: #08130d; }
+  .popup .pin-actions button.primary:hover { background: #3ad07f; }
+  .popup .pin-actions button.danger { background: rgba(239, 71, 111, 0.2); border-color: #ef476f; color: #ff8fa8; }
+  .popup .pin-text {
+    display: block; width: 100%; min-height: 66px; margin-top: 9px; padding: 8px 10px; resize: vertical;
+    border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(0, 0, 0, 0.25);
+    color: var(--text); font: inherit; font-size: 13.5px; line-height: 1.4; outline: none;
+  }
+  .popup .pin-text:focus { border-color: rgba(255, 255, 255, 0.35); }
+  .popup .pin-hint { margin-top: 5px; font-size: 11px; color: var(--muted); }
+  .pin-tip { padding: 6px 8px 8px; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
 
   .controls { right: 14px; bottom: 34px; display: flex; flex-direction: column; overflow: hidden; }
   .controls button {
@@ -248,6 +276,8 @@
     .controls { bottom: 28px; }
     .side { width: calc(100vw - 28px); }
     .popup { width: min(300px, 86vw); }
+    .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
+    .popup .pin-hint { display: none; }
   }
 </style>
 </head>
@@ -267,6 +297,7 @@
       <button data-mode="fav"><span class="ic">★</span> <span class="tn" data-n="fav">0</span></button>
       <button data-mode="todo"><span class="ic">◎</span> <span class="tn" data-n="todo">0</span></button>
       <button data-mode="done"><span class="ic">✓</span> <span class="tn" data-n="done">0</span></button>
+      <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
     <div class="layers-row">
       <label class="opt"><input type="checkbox" id="show-names"> Noms des lieux</label>
@@ -893,6 +924,7 @@
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
     for (const id in marks) { const m = marks[id]; if (m.fav) n.fav++; if (m.st) n[m.st]++; }
+    n.pins = pins.length;
     document.querySelectorAll('.tabs .tn').forEach(el => { el.textContent = n[el.dataset.n]; });
   }
   listEl.addEventListener('click', (e) => {
@@ -1060,6 +1092,7 @@
   }
 
   function openPopup(f) {
+    pinCardClosed();   // une fiche d'épingle ouverte laisse la place à celle du lieu
     popupFeature = f;
     const l = f.get('loc');
     const c = catById[l.c];
@@ -1195,6 +1228,7 @@
     popupFeature = null;
     popupEl.classList.add('hidden'); popup.setPosition(undefined);
     sheetEl.classList.add('hidden');
+    pinCardClosed();
     if (wasOpen) { refreshPoints(); setHash(''); }
     if (selectedId !== null) { selectedId = null; poiLayer.changed(); }
   }
@@ -1202,6 +1236,11 @@
   // 'click' (immédiat) plutôt que 'singleclick' (attend ~250 ms pour exclure un double-clic,
   // ce qui faisait rater des clics rapprochés sur deux points)
   map.on('click', (e) => {
+    // Le relâchement d'un appui long (qui vient de poser une épingle) n'est pas un clic
+    if (lpSuppress) { lpSuppress = false; return; }
+    // Les épingles passent avant les points
+    const pinHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === pinLayer, hitTolerance: 4 });
+    if (pinHit) { openPinCard(pinHit, PIN_STATE[pinHit.get('kind')]); return; }
     // On récupère tout ce qui est sous le clic et on garde le plus proche du curseur
     const hits = [];
     map.forEachFeatureAtPixel(e.pixel, f => { hits.push(f); }, { layerFilter: l => l === poiLayer, hitTolerance: 5 });
@@ -1221,17 +1260,18 @@
   });
   map.on('pointermove', (e) => {
     if (e.dragging) return;
-    const over = map.hasFeatureAtPixel(e.pixel, { layerFilter: l => l === poiLayer, hitTolerance: 4 });
+    const over = map.hasFeatureAtPixel(e.pixel, { layerFilter: l => l === poiLayer || l === pinLayer, hitTolerance: 4 });
     map.getViewport().style.cursor = over ? 'pointer' : '';
   });
 
   // --- Onglets et liste des lieux marqués ---
   const marksListEl = document.getElementById('marks-list');
-  const MODE_TITLES = { fav: 'Tes <b>favoris</b>', todo: 'Tes lieux <b>à visiter</b>', done: 'Tes lieux <b>visités</b>' };
+  const MODE_TITLES = { fav: 'Tes <b>favoris</b>', todo: 'Tes lieux <b>à visiter</b>', done: 'Tes lieux <b>visités</b>', pins: 'Tes <b>épingles</b>' };
   const MODE_EMPTY = {
     fav: 'Aucun favori pour l\'instant. Clique sur un point de la carte puis sur « ★ Favori ».',
     todo: 'Aucun lieu à visiter pour l\'instant. Clique sur un point puis sur « ◎ À visiter ».',
-    done: 'Aucun lieu visité pour l\'instant. Clique sur un point puis sur « ✓ Visité ».'
+    done: 'Aucun lieu visité pour l\'instant. Clique sur un point puis sur « ✓ Visité ».',
+    pins: 'Aucune épingle pour l\'instant. Fais un appui long sur la carte (ou un clic droit) pour en poser une.'
   };
   const byId = {};
   allFeatures.forEach(f => { byId[f.get('loc').id] = f; });
@@ -1245,10 +1285,13 @@
     listEl.classList.toggle('hidden', !all);
     marksListEl.classList.toggle('hidden', all);
     if (!all) document.getElementById('mode-title').innerHTML = MODE_TITLES[m];
+    // Le bouton « Partager » envoie les marques ; une épingle se partage depuis sa fiche
+    document.getElementById('marks-share').classList.toggle('hidden', m === 'pins');
     closePopup();
     refreshPoints();
   }
   function renderMarksList() {
+    if (mode === 'pins') { renderPinsList(); return; }
     const ids = Object.keys(marks).filter(id => hasMark(id, mode) && byId[id]);
     if (!ids.length) { marksListEl.innerHTML = `<div class="empty">${MODE_EMPTY[mode]}</div>`; return; }
     // Classement : région puis nom
@@ -1293,7 +1336,7 @@
 
   // Export / import des marques (sauvegarde dans un fichier)
   document.getElementById('marks-export').onclick = () => {
-    const data = { app: 'leonida-carte', version: 1, exported: new Date().toISOString(), marks };
+    const data = { app: 'leonida-carte', version: 1, exported: new Date().toISOString(), marks, pins };
     const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1309,17 +1352,19 @@
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      const incoming = data && data.marks;
-      if (!incoming || typeof incoming !== 'object') throw new Error('format');
+      const incoming = data && data.marks && typeof data.marks === 'object' ? data.marks : null;
+      const inPins = data && Array.isArray(data.pins) ? data.pins : null;
+      if (!incoming && !inPins) throw new Error('format');
       let n = 0;
-      for (const id in incoming) {
+      for (const id in (incoming || {})) {
         if (!byId[id]) continue;
         const m = incoming[id], cur = markOf(id);
         // Fusion : on garde la marque la plus récente
         if (!marks[id] || (m.t || 0) >= (cur.t || 0)) { marks[id] = m; n++; }
       }
-      saveMarks(); refreshPoints(); poiLayer.changed();
-      alertMsg(n + ' lieu(x) importé(s).');
+      const k = inPins ? mergePins(inPins) : 0;
+      saveMarks(); refreshPoints(); poiLayer.changed(); refreshPins();
+      alertMsg(n + ' lieu(x) et ' + k + ' épingle(s) importé(s).');
     } catch (err) {
       alertMsg('Ce fichier n\'est pas un export de marques valide.');
     }
@@ -1391,6 +1436,8 @@
     if (m && byId[m[1]]) { goToFeature(byId[m[1]]); return true; }
     m = h.match(/^partage=(.*)$/);
     if (m) { offerShared(parseShared(m[1])); return true; }
+    m = h.match(/^epingle=(-?\d+),(-?\d+)(?:,(.*))?$/);
+    if (m) { receiveSharedPin(+m[1], +m[2], m[3] || ''); return true; }
     return false;
   }
   window.addEventListener('hashchange', handleHash);
@@ -1401,6 +1448,323 @@
     shareLink(url, 'Mes lieux sur la carte de Leonida', msg);
   };
   dialogEl.addEventListener('click', (e) => { if (e.target === dialogEl) { closeDialog(); setHash(''); } });
+
+  // ===========================================================================
+  // ÉPINGLES posées à la main (comme sur Google Maps)
+  // Appui long sur la carte (ou clic droit) : nouvelle épingle avec un petit texte.
+  // Gardées dans le navigateur ; partage par lien #epingle=x,y,texte.
+  // Coordonnées en « pixels carte » (x vers la droite, y vers le bas), comme les lieux.
+  // ===========================================================================
+  const PINS_KEY = 'leonida.epingles.v1';
+  const PIN_COLOR = '#ff5a5f';
+  const PIN_MAX = 300;   // longueur max du texte
+  const validPin = (p) => p && typeof p.x === 'number' && typeof p.y === 'number' && isFinite(p.x) && isFinite(p.y);
+  const cleanPin = (p) => ({ id: String(p.id), x: Math.round(p.x), y: Math.round(p.y), txt: String(p.txt || '').slice(0, PIN_MAX), t: +p.t || Date.now() });
+  let pins = [];
+  try { const a = JSON.parse(localStorage.getItem(PINS_KEY) || '[]'); if (Array.isArray(a)) pins = a.filter(p => validPin(p) && p.id).map(cleanPin); } catch (e) { pins = []; }
+  const savePins = () => { try { localStorage.setItem(PINS_KEY, JSON.stringify(pins)); } catch (e) {} };
+  const newPinId = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  // Import d'un fichier : même id = on garde la version la plus récente
+  function mergePins(list) {
+    let k = 0;
+    list.filter(p => validPin(p) && p.id).map(cleanPin).forEach(p => {
+      const i = pins.findIndex(x => x.id === p.id);
+      if (i < 0) { pins.push(p); k++; }
+      else if (p.t >= pins[i].t) { pins[i] = p; k++; }
+    });
+    savePins();
+    return k;
+  }
+
+  // kind : 'own' = épingle enregistrée, 'draft' = en cours de création, 'shared' = reçue par lien
+  const PIN_STATE = { own: 'view', draft: 'edit', shared: 'shared' };
+  const pinSource = new ol.source.Vector();
+  let temp = null;      // épingle pas encore enregistrée (brouillon ou reçue par lien)
+  let pinOpen = null;   // épingle dont la fiche est ouverte
+  function pinFeature(p, kind) {
+    const f = new ol.Feature(new ol.geom.Point([p.x, -p.y]));
+    f.set('pin', p); f.set('kind', kind);
+    return f;
+  }
+  // Dessin de l'épingle : goutte rouge, en double résolution (affichée à 50 %)
+  const pinUriCache = {};
+  function pinUri(dashed, sel) {
+    const k = (dashed ? 'd' : '') + (sel ? 's' : '');
+    if (!pinUriCache[k]) {
+      const stroke = sel || dashed ? '#ffffff' : 'rgba(10,18,24,0.85)';
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="80" viewBox="0 0 60 80">' +
+        `<path d="M30 76C30 76 7 47 7 30a23 23 0 1 1 46 0c0 17-23 46-23 46z" fill="${PIN_COLOR}" stroke="${stroke}" stroke-width="${sel ? 5 : 3.5}"${dashed ? ' stroke-dasharray="7 5"' : ''}/>` +
+        '<circle cx="30" cy="30" r="8.5" fill="#ffffff"/></svg>';
+      pinUriCache[k] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+    return pinUriCache[k];
+  }
+  const pinIconStyles = {}, pinTextStyles = {};
+  const firstLine = (t) => { const l = String(t || '').split(/\r?\n/)[0].trim(); return l.length > 32 ? l.slice(0, 31) + '…' : l; };
+  const pinLayer = new ol.layer.Vector({
+    source: pinSource, updateWhileAnimating: true, updateWhileInteracting: true,
+    style: (f, res) => {
+      const kind = f.get('kind'), p = f.get('pin'), sel = f === pinOpen, dashed = kind !== 'own';
+      const k = (dashed ? 'd' : '') + (sel ? 's' : '');
+      if (!pinIconStyles[k]) pinIconStyles[k] = new ol.style.Style({ image: new ol.style.Icon({ src: pinUri(dashed, sel), scale: sel ? 0.6 : 0.5, anchor: [0.5, 0.96] }) });
+      const out = [pinIconStyles[k]];
+      // Le texte sous l'épingle, dès qu'on est un peu rapproché
+      const label = kind === 'draft' ? '' : firstLine(p.txt);
+      if (label && zoomForRes(res) >= 2) {
+        if (!pinTextStyles[label]) pinTextStyles[label] = new ol.style.Style({ text: new ol.style.Text({
+          text: label, offsetY: 7, textBaseline: 'top',
+          font: '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(10, 20, 28, 0.85)', width: 3.2 })
+        }) });
+        out.push(pinTextStyles[label]);
+      }
+      return out;
+    }
+  });
+  map.addLayer(pinLayer);   // au-dessus des points et des noms
+
+  function refreshPins() {
+    pinSource.clear(true);
+    pinSource.addFeatures(pins.map(p => pinFeature(p, 'own')));
+    if (temp) pinSource.addFeature(temp);
+    updateCounts();
+    if (mode === 'pins') renderPinsList();
+  }
+
+  // Nom du quartier / de la ville et du comté sous une épingle
+  let regionPolys = null;
+  function placeName(p) {
+    if (!regionPolys) regionPolys = REGIONS.map(r => ({ r, g: (regionGeom[r.id] || []).map(poly => new ol.geom.Polygon(poly)) }));
+    const c = [p.x, -p.y];
+    let best = null, county = null;
+    for (const it of regionPolys) {
+      if (!it.g.some(g => g.intersectsCoordinate(c))) continue;
+      if (it.r.n === 1) county = it.r;
+      else if (!best || it.r.n > best.n) best = it.r;
+    }
+    return [best, county].filter(Boolean).map(r => r.t).join(' · ');
+  }
+  const PIN_ICO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg>';
+  const pinUrl = (p) => location.origin + location.pathname + '#epingle=' + p.x + ',' + p.y + (p.txt ? ',' + encodeURIComponent(p.txt) : '');
+
+  // --- Fiche d'une épingle (bulle sur ordinateur, bas d'écran sur téléphone) ---
+  function pinCardHtml(f, state) {
+    const p = f.get('pin'), kind = f.get('kind');
+    const place = placeName(p);
+    const title = p.txt ? `<h3 class="pin-txt">${esc(p.txt)}</h3>` : '<h3 class="pin-txt none">Épingle sans texte</h3>';
+    const head = (t) => `<button class="close" aria-label="Fermer">×</button><div class="body noimg"><div class="cat-line"><span class="badge pin-b">${PIN_ICO}</span>${t}</div>`;
+    if (state === 'edit') {
+      return head(kind === 'draft' ? 'Nouvelle épingle' : 'Modifier l\'épingle') +
+        `<textarea class="pin-text" maxlength="${PIN_MAX}" placeholder="Ton petit texte (facultatif)">${esc(p.txt)}</textarea>
+        <div class="pin-hint">Entrée pour enregistrer, Maj + Entrée pour aller à la ligne</div>
+        <div class="pin-actions two"><button data-pa="cancel">Annuler</button><button data-pa="save" class="primary">Enregistrer</button></div></div>`;
+    }
+    if (state === 'shared') {
+      return head('Épingle partagée') + title + `<div class="region">${esc(place)}</div>
+        <div class="pin-actions two"><button data-pa="ignore">Ignorer</button><button data-pa="keep" class="primary">Enregistrer sur ma carte</button></div></div>`;
+    }
+    return head('Épingle') + title + `<div class="region">${esc(place)}</div>
+      <div class="pin-actions"><button data-pa="edit">✎ Modifier</button><button data-pa="share">↗ Partager</button><button data-pa="del">✕ Supprimer</button></div>
+      <div class="share-msg" aria-live="polite"></div></div>`;
+  }
+
+  function openPinCard(f, state, msg) {
+    // Une fiche de lieu ouverte se ferme sans bruit
+    if (popupFeature !== null) {
+      popupFeature = null;
+      if (selectedId !== null) { selectedId = null; poiLayer.changed(); }
+      refreshPoints(); setHash('');
+    }
+    // Ouvrir une autre épingle abandonne le brouillon ou l'épingle reçue en cours
+    if (temp && temp !== f) { pinSource.removeFeature(temp); temp = null; }
+    pinOpen = f;
+    const phone = isPhone();
+    (phone ? popupEl : sheetEl).classList.add('hidden');
+    if (phone) popup.setPosition(undefined);
+    cardEl = phone ? sheetEl : popupEl;
+    cardEl.innerHTML = pinCardHtml(f, state);
+    cardEl.classList.remove('hidden');
+    cardEl.scrollTop = 0;
+    popupEl.classList.toggle('pin-card', !phone);
+    cardEl.querySelector('.close').onclick = closePopup;
+    pinLayer.changed();
+    if (msg) { const el = cardEl.querySelector('.share-msg'); if (el) { el.textContent = msg; el._t = setTimeout(() => { el.textContent = ''; }, 4000); } }
+
+    const coord = f.getGeometry().getCoordinates();
+    if (phone) {
+      // On garde l'épingle visible au-dessus de la fiche
+      setTimeout(() => {
+        const sheetH = sheetEl.getBoundingClientRect().height;
+        const size = map.getSize(); if (!size) return;
+        const px = map.getPixelFromCoordinate(coord);
+        const wantY = Math.max(70, (size[1] - sheetH) / 2 + 20);
+        const dy = px[1] - wantY, dx = px[0] - size[0] / 2;
+        if (Math.abs(dy) > 4 || Math.abs(dx) > 4) {
+          const res = view.getResolution(), ctr = view.getCenter();
+          view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
+        }
+      }, 60);
+    } else {
+      popup.setPosition(coord);
+      setTimeout(() => {
+        const r = popupEl.getBoundingClientRect(), vw = window.innerWidth;
+        const sideW = sideOpen() ? 310 : 0;
+        let dx = 0, dy = 0;
+        if (r.top < 14) dy = r.top - 14;
+        if (r.left < sideW + 14) dx = r.left - (sideW + 14);
+        if (r.right > vw - 14) dx = r.right - (vw - 14);
+        if (dx || dy) {
+          const res = view.getResolution(), ctr = view.getCenter();
+          view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
+        }
+      }, 80);
+    }
+    if (state === 'edit') {
+      const ta = cardEl.querySelector('.pin-text');
+      ta.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); savePin(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+      };
+      setTimeout(() => { try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }, 30);
+    }
+  }
+  // Appelée à chaque fermeture de fiche : retire le brouillon ou l'épingle reçue non enregistrés
+  function pinCardClosed() {
+    if (!pinOpen && !temp) return;
+    const wasShared = temp && temp.get('kind') === 'shared';
+    if (temp) { pinSource.removeFeature(temp); temp = null; }
+    pinOpen = null;
+    popupEl.classList.remove('pin-card');
+    pinLayer.changed();
+    if (wasShared) setHash('');
+  }
+  // Après un enregistrement : on reconstruit la couche et on rouvre la fiche de l'épingle
+  function reopenPin(id, msg) {
+    temp = null; pinOpen = null;
+    refreshPins();
+    const nf = pinSource.getFeatures().find(x => x.get('pin').id === id);
+    if (nf) openPinCard(nf, 'view', msg);
+  }
+  function savePin() {
+    const f = pinOpen; if (!f) return;
+    const ta = cardEl.querySelector('.pin-text');
+    const p = f.get('pin');
+    p.txt = ta ? ta.value.trim().slice(0, PIN_MAX) : p.txt;
+    p.t = Date.now();
+    if (f.get('kind') !== 'own') { p.id = newPinId(); pins.push(p); }
+    savePins();
+    reopenPin(p.id);
+  }
+  function cancelEdit() {
+    if (!pinOpen) return;
+    if (pinOpen.get('kind') === 'draft') closePopup(); else openPinCard(pinOpen, 'view');
+  }
+  function onPinAction(e) {
+    const b = e.target.closest('[data-pa]');
+    if (!b || !pinOpen) return;
+    const f = pinOpen, p = f.get('pin'), a = b.dataset.pa;
+    if (a === 'save') savePin();
+    else if (a === 'cancel') cancelEdit();
+    else if (a === 'edit') openPinCard(f, 'edit');
+    else if (a === 'share') shareLink(pinUrl(p), (firstLine(p.txt) || 'Épingle') + ' · Leonida', cardEl.querySelector('.share-msg'));
+    else if (a === 'del') {
+      // Deux temps : le premier clic demande confirmation
+      if (!b.classList.contains('danger')) {
+        b.classList.add('danger'); b.textContent = 'Confirmer ?';
+        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('danger'); b.textContent = '✕ Supprimer'; }, 4000);
+        return;
+      }
+      pins = pins.filter(x => x.id !== p.id);
+      savePins(); closePopup(); refreshPins();
+    }
+    else if (a === 'ignore') closePopup();
+    else if (a === 'keep') {
+      p.id = newPinId(); p.t = Date.now(); pins.push(p);
+      savePins(); setHash('');
+      reopenPin(p.id, 'Épingle enregistrée sur ta carte.');
+    }
+  }
+  popupEl.addEventListener('click', onPinAction);
+  sheetEl.addEventListener('click', onPinAction);
+
+  function startNewPin(coord) {
+    closePopup();
+    const p = { id: null, x: Math.round(coord[0]), y: Math.round(-coord[1]), txt: '', t: 0 };
+    temp = pinFeature(p, 'draft');
+    pinSource.addFeature(temp);
+    try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+    openPinCard(temp, 'edit');
+  }
+  function goToPin(f, state) {
+    if (isPhone()) setSide(false);
+    targetRes = null;
+    const res = Math.min(view.getResolution(), resForZoom(4.6));
+    view.animate({ center: f.getGeometry().getCoordinates(), resolution: res, duration: 450 }, () => openPinCard(f, state));
+  }
+  // Lien reçu : #epingle=x,y,texte
+  function receiveSharedPin(x, y, rawTxt) {
+    let txt = rawTxt;
+    try { txt = decodeURIComponent(rawTxt); } catch (e) {}
+    txt = txt.slice(0, PIN_MAX);
+    if (x < PAN_LIMIT[0] || x > PAN_LIMIT[2] || -y < PAN_LIMIT[1] || -y > PAN_LIMIT[3]) { setHash(''); return; }
+    // Déjà sur ma carte ? On l'ouvre simplement.
+    const mine = pinSource.getFeatures().find(f => { const p = f.get('pin'); return f.get('kind') === 'own' && Math.abs(p.x - x) <= 2 && Math.abs(p.y - y) <= 2 && p.txt === txt; });
+    if (mine) { setHash(''); goToPin(mine, 'view'); return; }
+    closePopup();
+    temp = pinFeature({ id: null, x, y, txt, t: 0 }, 'shared');
+    pinSource.addFeature(temp);
+    goToPin(temp, 'shared');
+  }
+
+  // --- Liste des épingles (onglet du panneau) ---
+  function renderPinsList() {
+    const tip = '<div class="pin-tip">Appui long sur la carte (ou clic droit) pour poser une épingle.</div>';
+    if (!pins.length) { marksListEl.innerHTML = `<div class="empty">${MODE_EMPTY.pins}</div>`; return; }
+    marksListEl.innerHTML = tip + pins.slice().sort((a, b) => b.t - a.t).map(p =>
+      `<div class="mk" data-pin="${esc(p.id)}"><span class="badge pin-b">${PIN_ICO}</span>
+        <div><div class="t">${p.txt ? esc(firstLine(p.txt)) : '<span style="color:var(--muted)">Épingle sans texte</span>'}</div><div class="s">${esc(placeName(p))}</div></div></div>`).join('');
+  }
+  marksListEl.addEventListener('click', (e) => {
+    const it = e.target.closest('[data-pin]');
+    if (!it) return;
+    const f = pinSource.getFeatures().find(x => x.get('pin').id === it.dataset.pin);
+    if (f) goToPin(f, 'view');
+  });
+
+  // --- Appui long (doigt ou souris) et clic droit ---
+  const LONG_MS = 550;
+  let lpTimer = 0, lpStart = null, lpSuppress = false;
+  const lpPointers = new Set();
+  const lpCancel = () => { clearTimeout(lpTimer); lpStart = null; };
+  viewport.addEventListener('pointerdown', (e) => {
+    lpPointers.add(e.pointerId);
+    lpCancel();
+    lpSuppress = false;
+    if (lpPointers.size > 1) return;                          // pincement : pas d'épingle
+    if (e.pointerType === 'mouse' && e.button !== 0) return;  // le clic droit passe par contextmenu
+    if (e.target.closest && e.target.closest('.popup')) return;
+    lpStart = [e.clientX, e.clientY];
+    const px = map.getEventPixel(e);
+    lpTimer = setTimeout(() => {
+      lpStart = null; lpSuppress = true;
+      startNewPin(map.getCoordinateFromPixel(px));
+    }, LONG_MS);
+  });
+  viewport.addEventListener('pointermove', (e) => {
+    if (lpStart && Math.hypot(e.clientX - lpStart[0], e.clientY - lpStart[1]) > 8) lpCancel();
+  });
+  const lpEnd = (e) => { lpPointers.delete(e.pointerId); lpCancel(); };
+  window.addEventListener('pointerup', lpEnd);
+  window.addEventListener('pointercancel', lpEnd);
+  viewport.addEventListener('contextmenu', (e) => {
+    if (e.target.closest && e.target.closest('.popup')) return;   // menu normal dans une fiche (copier…)
+    e.preventDefault();
+    if (lpSuppress) return;                 // l'appui long vient déjà de poser une épingle
+    if (lpStart) { lpCancel(); lpSuppress = true; }   // appui long tactile (Android) : on le prend ici
+    startNewPin(map.getCoordinateFromPixel(map.getEventPixel(e)));
+  });
+
+  refreshPins();
 
   // --- Bouton EN / FR : bascule la langue des fiches, listes et noms de la carte ---
   const langEl = document.getElementById('lang');

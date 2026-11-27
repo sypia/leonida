@@ -112,6 +112,7 @@
   .tabs .tn { font-variant-numeric: tabular-nums; font-size: 11px; }
   .opt { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--muted); cursor: pointer; }
   .opt input { margin: 0; accent-color: #7ee2a8; }
+  .layers-row { display: flex; gap: 16px; margin-top: 2px; }
   .mode-title { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .mode-title b { color: var(--text); }
 
@@ -126,6 +127,7 @@
   .res-head { padding: 8px 8px 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
   .res-head b { color: var(--text); }
   .res-cats { margin-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.07); padding-top: 10px; }
+  .zone-b { background: rgba(255, 255, 255, 0.85); }
   .res-more { padding: 6px 8px; font-size: 11.5px; color: var(--muted); }
   .empty { padding: 18px 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
@@ -256,6 +258,10 @@
       <button data-mode="todo"><span class="ic">◎</span> <span class="tn" data-n="todo">0</span></button>
       <button data-mode="done"><span class="ic">✓</span> <span class="tn" data-n="done">0</span></button>
     </div>
+    <div class="layers-row">
+      <label class="opt"><input type="checkbox" id="show-names"> Noms des lieux</label>
+      <label class="opt"><input type="checkbox" id="show-borders"> Frontières</label>
+    </div>
     <div id="tools-all">
       <div class="side-tools">
         <input id="cat-search" type="search" placeholder="Rechercher un lieu, une catégorie…" autocomplete="off" spellcheck="false">
@@ -281,7 +287,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points : Map Genie · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
+  <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points et zones : Map Genie · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><span>Leonida</span>
@@ -298,6 +304,7 @@
 <script src="lib/ol.js"></script>
 <script src="donnees/points_mapgenie.js"></script>
 <script src="lib/icones.js"></script>
+<script src="donnees/regions.js"></script>
 <script>
 (function () {
   'use strict';
@@ -716,6 +723,83 @@
   });
   map.addLayer(poiLayer);
 
+  // --- Noms de lieux et frontières (donnees/regions.js, contours Map Genie) ---
+  // Niveaux : 1 = comté, 2 = ville / zone, 3-4 = quartier / île. Affichage selon le zoom.
+  const REGIONS = (window.REGIONS || []).filter(r => !/runway/i.test(r.t));
+  const regionGeom = {};
+  const borderSource = new ol.source.Vector(), labelSource = new ol.source.Vector();
+  REGIONS.forEach(r => {
+    const polys = r.g.map(poly => poly.map(ring => ring.map(([x, y]) => [x, -y])));
+    regionGeom[r.id] = polys;
+    polys.forEach(poly => { const f = new ol.Feature(new ol.geom.Polygon(poly)); f.set('lvl', r.n); borderSource.addFeature(f); });
+    if (r.c) { const f = new ol.Feature(new ol.geom.Point([r.c[0], -r.c[1]])); f.set('lvl', r.n); f.set('name', r.t); labelSource.addFeature(f); }
+  });
+  const LAYERS_KEY = 'leonida.affichage.v1';
+  let showNames = true, showBorders = true;
+  try { const a = JSON.parse(localStorage.getItem(LAYERS_KEY) || '{}'); if (a.names === false) showNames = false; if (a.borders === false) showBorders = false; } catch (e) {}
+  const borderStyles = {
+    1: new ol.style.Style({ stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.75)', width: 2.2 }) }),
+    2: new ol.style.Style({ stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.5)', width: 1.4, lineDash: [6, 4] }) }),
+    3: new ol.style.Style({ stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.35)', width: 1, lineDash: [3, 3] }) })
+  };
+  const borderLayer = new ol.layer.Vector({
+    source: borderSource, updateWhileAnimating: true, updateWhileInteracting: true,
+    style: (f, res) => {
+      const z = zoomForRes(res), n = f.get('lvl');
+      if (n === 1) return borderStyles[1];
+      if (n === 2) return z >= 1.5 ? borderStyles[2] : null;
+      return z >= 3.5 ? borderStyles[3] : null;
+    }
+  });
+  const labelStyleCache = {};
+  function labelStyle(name, n) {
+    const k = n + name;
+    if (!labelStyleCache[k]) {
+      const big = n === 1, mid = n === 2;
+      labelStyleCache[k] = new ol.style.Style({
+        text: new ol.style.Text({
+          text: big ? name.toUpperCase() : name,
+          font: big ? '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    : (mid ? '650 13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                           : '600 11.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+          fill: new ol.style.Fill({ color: big ? 'rgba(255, 255, 255, 0.92)' : '#ffffff' }),
+          stroke: new ol.style.Stroke({ color: 'rgba(10, 20, 28, 0.85)', width: big ? 4 : 3.2 }),
+          overflow: true, padding: [2, 4, 2, 4]
+        })
+      });
+    }
+    return labelStyleCache[k];
+  }
+  const labelLayer = new ol.layer.Vector({
+    source: labelSource, declutter: true, updateWhileAnimating: true, updateWhileInteracting: true,
+    style: (f, res) => {
+      const z = zoomForRes(res), n = f.get('lvl');
+      if (n === 1 && z > 2.8) return null;
+      if (n === 2 && (z < 1.3 || z > 5.2)) return null;
+      if (n >= 3 && z < 3.3) return null;
+      return labelStyle(f.get('name'), n);
+    }
+  });
+  // Frontières sous les marqueurs, noms au-dessus (sinon les bulles les cachent).
+  // Les clics ne visent que la couche des points, les noms ne gênent donc pas.
+  map.getLayers().insertAt(1, borderLayer);
+  map.addLayer(labelLayer);
+  // Zone mise en surbrillance après une recherche de zone
+  const hlSource = new ol.source.Vector();
+  const hlLayer = new ol.layer.Vector({ source: hlSource, style: new ol.style.Style({
+    fill: new ol.style.Fill({ color: 'rgba(255, 209, 102, 0.14)' }),
+    stroke: new ol.style.Stroke({ color: '#ffd166', width: 3 }) }) });
+  map.getLayers().insertAt(2, hlLayer);
+  function applyLayerToggles() {
+    labelLayer.setVisible(showNames); borderLayer.setVisible(showBorders);
+    document.getElementById('show-names').checked = showNames;
+    document.getElementById('show-borders').checked = showBorders;
+    try { localStorage.setItem(LAYERS_KEY, JSON.stringify({ names: showNames, borders: showBorders })); } catch (e) {}
+  }
+  document.getElementById('show-names').onchange = (e) => { showNames = e.target.checked; applyLayerToggles(); };
+  document.getElementById('show-borders').onchange = (e) => { showBorders = e.target.checked; applyLayerToggles(); };
+  applyLayerToggles();
+
   function updateClustering() {
     const z = zoomForRes(view.getResolution());
     clusterSource.setDistance(z >= CLUSTER_OFF_ZOOM ? 0 : 34);
@@ -826,9 +910,13 @@
   function renderPlaceResults(q) {
     if (!q || q.length < 2) { placeBox.innerHTML = ''; return; }
     const res = searchPlaces(q);
-    if (!res.length) { placeBox.innerHTML = '<div class="res-head">Aucun lieu trouvé</div>'; return; }
+    const zones = REGIONS.filter(r => norm(r.t).includes(q)).sort((a, b) => a.n - b.n).slice(0, 8);
+    const zonesHtml = zones.length ? `<div class="res-head">Zones : <b>${zones.length}</b></div>` + zones.map(r =>
+      `<div class="mk res zone" data-rid="${r.id}"><span class="badge zone-b">${iconHtml('landmark')}</span>
+        <div><div class="t">${esc(r.t)}</div><div class="s">${['', 'Comté', 'Ville ou zone', 'Quartier', 'Quartier'][r.n] || ''}</div></div></div>`).join('') : '';
+    if (!res.length) { placeBox.innerHTML = zonesHtml + '<div class="res-head">Aucun lieu trouvé</div>'; return; }
     const shown = res.slice(0, MAX_RESULTS);
-    placeBox.innerHTML = `<div class="res-head">Lieux trouvés : <b>${res.length}</b></div>` +
+    placeBox.innerHTML = zonesHtml + `<div class="res-head">Lieux trouvés : <b>${res.length}</b></div>` +
       shown.map(f => {
         const l = f.get('loc'), c = catById[l.c];
         return `<div class="mk res" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
@@ -838,9 +926,20 @@
       (listEl.querySelector('.grp:not(.hidden)') ? '<div class="res-head res-cats">Catégories</div>' : '');
   }
   placeBox.addEventListener('click', (e) => {
+    const z = e.target.closest('.zone');
+    if (z) { goToRegion(+z.dataset.rid); return; }
     const it = e.target.closest('.mk');
     if (it) goToFeature(byId[it.dataset.id]);
   });
+  // Cadrer la carte sur une zone
+  function goToRegion(rid) {
+    const polys = regionGeom[rid]; if (!polys) return;
+    hlSource.clear(); polys.forEach(poly => hlSource.addFeature(new ol.Feature(new ol.geom.Polygon(poly))));
+    const ext = ol.extent.boundingExtent(polys.flat(2));
+    if (window.innerWidth <= 600) setSide(false);
+    targetRes = null; closePopup();
+    view.fit(ext, { padding: [60, 60, 60, sideOpen() ? 340 : 60], duration: 500 });
+  }
   let searchTimer = 0;
   searchEl.addEventListener('input', () => {
     const q = norm(searchEl.value.trim());
@@ -1051,7 +1150,7 @@
     // On récupère tout ce qui est sous le clic et on garde le plus proche du curseur
     const hits = [];
     map.forEachFeatureAtPixel(e.pixel, f => { hits.push(f); }, { layerFilter: l => l === poiLayer, hitTolerance: 5 });
-    if (!hits.length) { closePopup(); return; }
+    if (!hits.length) { closePopup(); hlSource.clear(); return; }
     const dist = (f) => { const p = map.getPixelFromCoordinate(f.getGeometry().getCoordinates()); return Math.hypot(p[0] - e.pixel[0], p[1] - e.pixel[1]); };
     hits.sort((a, b) => dist(a) - dist(b));
     const hit = hits[0];

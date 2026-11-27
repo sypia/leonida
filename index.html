@@ -6,6 +6,11 @@
 <title>Leonida · Carte GTA VI</title>
 <link rel="stylesheet" href="lib/ol.css">
 <style>
+  /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
+  @font-face { font-family: 'Oswald'; font-weight: 600; font-display: swap; src: url(lib/polices/oswald-latin-600-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 700; font-display: swap; src: url(lib/polices/oswald-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 700; font-display: swap; src: url(lib/polices/montserrat-latin-700-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 800; font-display: swap; src: url(lib/polices/montserrat-latin-800-normal.woff2) format('woff2'); }
   :root {
     --ocean: #2f90b0;
     --panel: rgba(18, 28, 36, 0.82);
@@ -160,6 +165,7 @@
   .side-toggle:hover { background: var(--panel-hover); }
   .side-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.25s; transform: rotate(180deg); }
   body.side-closed .side-toggle svg { transform: none; }
+  body.no-anim .side, body.no-anim .side-toggle, body.no-anim .side-toggle svg { transition: none !important; }
 
   /* --- Fiche d'un point --- */
   .popup {
@@ -328,7 +334,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points et zones : Map Genie · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
+  <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points et zones : Map Genie · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><span>Leonida</span>
@@ -830,22 +836,36 @@
       return z >= 3.5 ? borderStyles[3] : null;
     }
   });
+  // Style inspiré de l'affiche « Visit Leonida » : texte blanc, contour sombre.
+  //  - comtés : grandes capitales étroites (Oswald) ;
+  //  - grandes villes : capitales étroites, un peu plus petites ;
+  //  - villes : minuscules grasses (Montserrat) ;
+  //  - quartiers, îles, zones : petites capitales étroites.
+  const GRANDES_VILLES = new Set(['Vice City', 'Port Gellhorn', 'Hamlet', 'Vice Beach', 'VCIA']);
+  const VILLES = new Set(['Grayson', 'Bonanza', 'Millport', 'Waning Sands', 'Belville', 'Ambrosia', 'Capri',
+    'Watson Bay', 'Grassrivers', 'Key Lento', 'Southwind', 'Draper Island', 'Mile Zero Air Station']);
+  const OSWALD = "Oswald, 'Arial Narrow', sans-serif", MONTSERRAT = "Montserrat, -apple-system, 'Segoe UI', sans-serif";
+  function labelKind(r) {
+    if (r.n === 1) return 'comte';
+    if (GRANDES_VILLES.has(r.en)) return 'grande';
+    if (VILLES.has(r.en)) return 'ville';
+    return 'quartier';
+  }
+  const LABEL_KINDS = {
+    comte:    { font: '700 25px ' + OSWALD,      upper: true,  stroke: 5 },
+    grande:   { font: '700 18px ' + OSWALD,      upper: true,  stroke: 4.5 },
+    ville:    { font: '800 14px ' + MONTSERRAT,  upper: false, stroke: 4 },
+    quartier: { font: '600 12.5px ' + OSWALD,    upper: true,  stroke: 3.2 }
+  };
   const labelStyleCache = {};
-  function labelStyle(name, n) {
-    const k = n + name;
+  function labelStyle(r) {
+    const kind = labelKind(r), k = kind + '|' + r.t;
     if (!labelStyleCache[k]) {
-      const big = n === 1, mid = n === 2;
-      labelStyleCache[k] = new ol.style.Style({
-        text: new ol.style.Text({
-          text: big ? name.toUpperCase() : name,
-          font: big ? '700 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                    : (mid ? '650 13.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                           : '600 11.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
-          fill: new ol.style.Fill({ color: big ? 'rgba(255, 255, 255, 0.92)' : '#ffffff' }),
-          stroke: new ol.style.Stroke({ color: 'rgba(10, 20, 28, 0.85)', width: big ? 4 : 3.2 }),
-          overflow: true, padding: [2, 4, 2, 4]
-        })
-      });
+      const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
+      // Un seul texte par nom : avec le « declutter », un 2e texte (ombre) masquerait le 1er
+      labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
+        fill: new ol.style.Fill({ color: '#ffffff' }),
+        stroke: new ol.style.Stroke({ color: 'rgba(12, 38, 42, 0.88)', width: K.stroke }) }) });
     }
     return labelStyleCache[k];
   }
@@ -853,16 +873,22 @@
     source: labelSource, declutter: true, updateWhileAnimating: true, updateWhileInteracting: true,
     style: (f, res) => {
       const z = zoomForRes(res), n = f.get('lvl');
-      if (n === 1 && z > 2.8) return null;
-      if (n === 2 && (z < 1.3 || z > 5.2)) return null;
-      if (n >= 3 && z < 3.3) return null;
-      return labelStyle(f.get('reg').t, n);
+      const r = f.get('reg'), kind = labelKind(r);
+      if (kind === 'comte' && z > 2.8) return null;
+      if ((kind === 'grande' || kind === 'ville') && (z < 1.0 || z > 5.2)) return null;
+      if (kind === 'quartier' && n === 2 && (z < 1.6 || z > 5.2)) return null;
+      if (n >= 3 && kind !== 'grande' && z < 3.3) return null;
+      return labelStyle(r);
     }
   });
   // Frontières sous les marqueurs, noms au-dessus (sinon les bulles les cachent).
   // Les clics ne visent que la couche des points, les noms ne gênent donc pas.
   map.getLayers().insertAt(1, borderLayer);
   map.addLayer(labelLayer);
+  if (document.fonts && document.fonts.load) {
+    Promise.all(['700 25px Oswald', '600 11px Oswald', '800 14px Montserrat'].map(f => document.fonts.load(f)))
+      .then(() => { labelLayer.changed(); }).catch(() => {});
+  }
   // Zone mise en surbrillance après une recherche de zone
   const hlSource = new ol.source.Vector();
   const hlLayer = new ol.layer.Vector({ source: hlSource, style: new ol.style.Style({
@@ -1048,14 +1074,24 @@
   });
   // Bouton du panneau (en bas à gauche) : ouvre / ferme le tiroir
   const toggleEl = document.getElementById('side-toggle');
+  // Panneau : ouvert par défaut sur ordinateur, le dernier réglage est retenu.
+  // Sur téléphone, il reste fermé à l'ouverture pour laisser la carte visible.
+  const SIDE_KEY = 'leonida.panneau.v1';
+  const saveSide = (open) => { if (window.innerWidth > 600) { try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) {} } };
   function setSide(open) {
     document.getElementById('side').classList.toggle('closed', !open);
     document.body.classList.toggle('side-closed', !open);
     toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
   const sideOpen = () => !document.body.classList.contains('side-closed');
-  toggleEl.onclick = () => setSide(!sideOpen());
-  toggleEl.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSide(!sideOpen()); } };
+  const toggleSide = () => { const o = !sideOpen(); setSide(o); saveSide(o); };
+  toggleEl.onclick = toggleSide;
+  toggleEl.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSide(); } };
+  if (window.innerWidth > 600) {
+    let open = true;
+    try { open = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) {}
+    if (open) { document.body.classList.add('no-anim'); setSide(true); requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove('no-anim'))); }
+  }
 
   // --- Fiche d'un point ---
   const popupEl = document.getElementById('popup');

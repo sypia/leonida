@@ -177,6 +177,33 @@
   }
   .popup .close:hover { background: rgba(0, 0, 0, 0.8); }
   .popup .noimg { padding-top: 34px; }
+  .popup .share-place {
+    margin-top: 6px; width: 100%; height: 30px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14);
+    background: transparent; color: var(--muted); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+  }
+  .popup .share-place:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+  .popup .share-msg:not(:empty), .share-msg-side:not(:empty) { margin-top: 6px; font-size: 11.5px; color: #7ee2a8; word-break: break-all; }
+
+  /* Fiche en bas d'écran (téléphone) */
+  .popup.sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 62vh; z-index: 40;
+    transform: none; border-radius: 16px 16px 0 0; overflow-y: auto; overscroll-behavior: contain;
+    padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.4);
+  }
+  .popup.sheet .body { overflow: visible; }
+  .popup.sheet .ph { max-height: 28vh; }
+  .popup.sheet::before { content: ''; position: sticky; top: 0; display: block; height: 0; }
+
+  /* Fenêtre de dialogue (marques partagées) */
+  .dialog-back { position: fixed; inset: 0; z-index: 60; background: rgba(5, 10, 14, 0.55); display: grid; place-items: center; padding: 16px; }
+  .dialog { width: min(380px, 100%); background: rgba(18, 28, 36, 0.98); border-radius: 14px; padding: 18px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); color: var(--text); }
+  .dialog h3 { margin: 0 0 6px; font-size: 16px; }
+  .dialog p { margin: 0 0 12px; color: #dbe4ea; font-size: 13px; line-height: 1.5; }
+  .dialog label { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; font-size: 13px; cursor: pointer; }
+  .dialog label input { margin-top: 2px; accent-color: #7ee2a8; }
+  .dialog .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .dialog .actions button { height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .dialog .actions button.primary { background: #2fbf71; border-color: #2fbf71; color: #08130d; }
   .popup .near { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
   .popup .near a { color: #8fd3f0; text-decoration: none; }
   .popup .near a:hover { text-decoration: underline; }
@@ -243,10 +270,12 @@
     <div id="tools-marks" class="hidden">
       <div class="mode-title" id="mode-title"></div>
       <div class="side-tools">
+        <button id="marks-share" title="Créer un lien avec tes marques à envoyer à tes amis">Partager</button>
         <button id="marks-export" title="Enregistrer toutes tes marques dans un fichier">Exporter</button>
         <button id="marks-import" title="Recharger des marques depuis un fichier exporté">Importer</button>
         <input type="file" id="marks-file" accept="application/json,.json" class="hidden">
       </div>
+      <div class="share-msg-side" id="marks-share-msg" aria-live="polite"></div>
     </div>
     <div class="side-count" id="side-count"></div>
   </div>
@@ -259,6 +288,8 @@
 </div>
 
 <div id="popup" class="popup hidden"></div>
+<div id="sheet" class="popup sheet hidden" role="dialog" aria-label="Fiche du lieu"></div>
+<div id="dialog" class="dialog-back hidden" role="dialog" aria-modal="true"><div class="dialog" id="dialog-box"></div></div>
 
 <!-- Boutons de navigation retirés : zoom au geste, à la molette, au clavier (+ / - / 0 / F) -->
 
@@ -390,7 +421,7 @@
     view = makeView(Math.min(fitRes * 1.35, panRes), view.getCenter(), view.getResolution());
     view.on('change:resolution', () => { updateZoomUI(); updateClustering(); });
     map.setView(view);
-    if (first) fitAll(0);
+    if (first) restoreView();
     updateZoomUI();
     updateClustering();
   }
@@ -510,7 +541,10 @@
   }
   document.addEventListener('keydown', (e) => {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-    if (e.key === 'Escape') closePopup();
+    if (e.key === 'Escape') {
+      const dlg = document.getElementById('dialog');
+      if (dlg && !dlg.classList.contains('hidden')) { dlg.classList.add('hidden'); setHash(''); } else closePopup();
+    }
     if (e.key === '0' || e.key === 'Home') { targetRes = null; fitAll(450); }
     if (e.key === 'f' || e.key === 'F') toggleFullscreen();
   });
@@ -861,6 +895,16 @@
     return out.join('');
   }
 
+  // Sur téléphone (écran étroit), la fiche s'affiche en bas d'écran au lieu d'une bulle sur la carte
+  const sheetEl = document.getElementById('sheet');
+  const isPhone = () => window.innerWidth <= 600;
+  let popupFeature = null, cardEl = popupEl;
+
+  function placeUrl(id) { return location.origin + location.pathname + '#lieu-' + id; }
+  function setHash(h) {
+    try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) {}
+  }
+
   function openPopup(f) {
     popupFeature = f;
     const l = f.get('loc');
@@ -883,32 +927,60 @@
         <button data-mark="todo" class="${hasMark(l.id, 'todo') ? 'on' : ''}">◎ À visiter</button>
         <button data-mark="done" class="${hasMark(l.id, 'done') ? 'on' : ''}">✓ Visité</button>
       </div>
+      <button class="share-place" data-share="${l.id}">↗ Partager ce lieu</button>
+      <div class="share-msg" aria-live="polite"></div>
       ${nearHtml(f)}
       ${l.d ? '<div class="desc">' + md(l.d) + '</div>' : ''}
     </div>`;
-    popupEl.innerHTML = h;
-    popupEl.classList.remove('hidden');
-    popupEl.querySelector('.close').onclick = closePopup;
-    const main = popupEl.querySelector('.ph');
+
+    const phone = isPhone();
+    // On masque l'autre format s'il était ouvert
+    (phone ? popupEl : sheetEl).classList.add('hidden');
+    if (phone) popup.setPosition(undefined);
+    cardEl = phone ? sheetEl : popupEl;
+    cardEl.innerHTML = h;
+    cardEl.classList.remove('hidden');
+    cardEl.scrollTop = 0;
+    const body = cardEl.querySelector('.body'); if (body) body.scrollTop = 0;
+    cardEl.querySelector('.close').onclick = closePopup;
+    const main = cardEl.querySelector('.ph');
     if (main) {
       // L'erreur de chargement peut survenir avant qu'on écoute : on vérifie aussi l'état actuel
-      const drop = () => { main.remove(); const st = popupEl.querySelector('.ph-strip'); if (st) st.remove(); popupEl.querySelector('.body').classList.add('noimg'); };
+      const el = cardEl;
+      const drop = () => { main.remove(); const st = el.querySelector('.ph-strip'); if (st) st.remove(); el.querySelector('.body').classList.add('noimg'); };
       main.addEventListener('error', drop);
       if (main.complete && main.naturalWidth === 0) drop();
     }
-    popupEl.querySelectorAll('.ph-strip img').forEach(im => im.onclick = () => {
+    cardEl.querySelectorAll('.ph-strip img').forEach(im => im.onclick = () => {
       main.src = imgs[+im.dataset.i];
-      popupEl.querySelectorAll('.ph-strip img').forEach(x => x.classList.toggle('sel', x === im));
+      cardEl.querySelectorAll('.ph-strip img').forEach(x => x.classList.toggle('sel', x === im));
     });
+    setHash('lieu-' + l.id);
+
+    if (phone) {
+      // Fiche en bas : on place le point dans la partie de carte restée visible au-dessus
+      setTimeout(() => {
+        const sheetH = sheetEl.getBoundingClientRect().height;
+        const size = map.getSize(); if (!size) return;
+        const px = map.getPixelFromCoordinate(f.getGeometry().getCoordinates());
+        const wantY = Math.max(60, (size[1] - sheetH) / 2);
+        const dy = px[1] - wantY, dx = px[0] - size[0] / 2;
+        if (Math.abs(dy) > 4 || Math.abs(dx) > 4) {
+          const res = view.getResolution(), ctr = view.getCenter();
+          view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
+        }
+      }, 60);
+      return;
+    }
     popup.setPosition(f.getGeometry().getCoordinates());
-    // Si la fiche sort de l'écran, on déplace la carte juste ce qu'il faut
+    // Si la bulle sort de l'écran, on déplace la carte juste ce qu'il faut
     setTimeout(() => {
-      const r = popupEl.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
-      const sideW = document.body.classList.contains('side-closed') ? 0 : 310;
+      const r = popupEl.getBoundingClientRect(), vw = window.innerWidth;
+      const sideW = sideOpen() ? 310 : 0;
       let dx = 0, dy = 0;
       if (r.top < 14) dy = r.top - 14;
       if (r.left < sideW + 14) dx = r.left - (sideW + 14);
-      if (r.right > vw - 70) dx = r.right - (vw - 70);
+      if (r.right > vw - 14) dx = r.right - (vw - 14);
       if (dx || dy) {
         const res = view.getResolution(), ctr = view.getCenter();
         view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
@@ -925,13 +997,24 @@
     if (!n.length) return '';
     return '<div class="near">Aussi ici : ' + n.map(o => `<a href="#" data-near="${o.get('loc').id}">${esc(o.get('loc').t)}</a>`).join(', ') + '</div>';
   }
-  let popupFeature = null;
-  popupEl.addEventListener('click', (e) => {
+
+  // Partage : menu de partage du téléphone s'il existe, sinon copie du lien
+  async function shareLink(url, title, msgEl) {
+    const say = (t) => { if (msgEl) { msgEl.textContent = t; clearTimeout(msgEl._t); msgEl._t = setTimeout(() => { msgEl.textContent = ''; }, 4000); } };
+    if (navigator.share && isPhone()) {
+      try { await navigator.share({ title, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(url); say('Lien copié : colle-le où tu veux.'); }
+    catch (e) { say('Copie impossible ici. Lien : ' + url); }
+  }
+
+  function onCardClick(e) {
+    const el = e.currentTarget;
     const mb = e.target.closest('[data-mark]');
     if (mb && popupFeature) {
       const id = popupFeature.get('loc').id;
       setMark(id, mb.dataset.mark);
-      popupEl.querySelectorAll('.marks button').forEach(b => b.classList.toggle('on', hasMark(id, b.dataset.mark)));
+      el.querySelectorAll('.marks button').forEach(b => b.classList.toggle('on', hasMark(id, b.dataset.mark)));
       poiLayer.changed();
       // Si le point ne correspond plus à la vue (onglet de marque, visités masqués), on le laisse affiché
       // jusqu'à la fermeture de la fiche pour ne pas le faire disparaître sous la souris.
@@ -939,17 +1022,26 @@
       if (mode !== 'all') renderMarksList();
       return;
     }
+    const sb = e.target.closest('[data-share]');
+    if (sb && popupFeature) {
+      shareLink(placeUrl(popupFeature.get('loc').id), popupFeature.get('loc').t + ' · Leonida', el.querySelector('.share-msg'));
+      return;
+    }
     const a = e.target.closest('[data-near]');
     if (!a) return;
     e.preventDefault();
     const f = pointSource.getFeatures().find(o => o.get('loc').id === +a.dataset.near);
     if (f) openPopup(f);
-  });
+  }
+  popupEl.addEventListener('click', onCardClick);
+  sheetEl.addEventListener('click', onCardClick);
+
   function closePopup() {
     const wasOpen = popupFeature !== null;
     popupFeature = null;
     popupEl.classList.add('hidden'); popup.setPosition(undefined);
-    if (wasOpen) refreshPoints();
+    sheetEl.classList.add('hidden');
+    if (wasOpen) { refreshPoints(); setHash(''); }
     if (selectedId !== null) { selectedId = null; poiLayer.changed(); }
   }
 
@@ -1080,11 +1172,88 @@
   };
   function alertMsg(t) { document.getElementById('mode-title').innerHTML = MODE_TITLES[mode] + ' · ' + esc(t); }
 
+  // --- Dernière vue : position et zoom mémorisés dans le navigateur ---
+  const VIEW_KEY = 'leonida.vue.v1';
+  let saveViewTimer = 0;
+  map.on('moveend', () => {
+    clearTimeout(saveViewTimer);
+    saveViewTimer = setTimeout(() => {
+      try { localStorage.setItem(VIEW_KEY, JSON.stringify({ c: view.getCenter().map(Math.round), r: view.getResolution() })); } catch (e) {}
+    }, 300);
+  });
+  function restoreView() {
+    let v = null;
+    try { v = JSON.parse(localStorage.getItem(VIEW_KEY) || 'null'); } catch (e) {}
+    if (v && Array.isArray(v.c) && v.r > 0) { view.setResolution(v.r); view.setCenter(v.c); }
+    else fitAll(0);
+  }
+
+  // --- Liens : #lieu-123 ouvre un lieu ; #partage=… propose d'ajouter les marques d'un ami ---
+  function parseShared(str) {
+    const out = { fav: [], todo: [], done: [] };
+    const keys = { f: 'fav', t: 'todo', d: 'done' };
+    decodeURIComponent(str).split(';').forEach(part => {
+      const m = part.match(/^([ftd]):([\d,]*)$/);
+      if (m) out[keys[m[1]]] = m[2].split(',').filter(Boolean).map(Number).filter(id => byId[id]);
+    });
+    return out;
+  }
+  function sharedLinkFromMarks() {
+    const f = [], t = [], d = [];
+    for (const id in marks) { const m = marks[id]; if (m.fav) f.push(id); if (m.st === 'todo') t.push(id); if (m.st === 'done') d.push(id); }
+    return { url: location.origin + location.pathname + '#partage=' + ['f:' + f.join(','), 't:' + t.join(','), 'd:' + d.join(',')].join(';'), n: f.length + t.length + d.length };
+  }
+  const dialogEl = document.getElementById('dialog'), dialogBox = document.getElementById('dialog-box');
+  function closeDialog() { dialogEl.classList.add('hidden'); dialogBox.innerHTML = ''; }
+  function offerShared(sh) {
+    const nF = sh.fav.length, nT = sh.todo.length, nD = sh.done.length;
+    if (!nF && !nT && !nD) { setHash(''); return; }
+    dialogBox.innerHTML = `<h3>Lieux partagés par un ami</h3>
+      <p>Ce lien contient ${nF} favori(s), ${nT} lieu(x) à visiter et ${nD} lieu(x) visité(s). Que veux-tu ajouter à ta carte ?</p>
+      <label><input type="checkbox" id="sh-f" ${nF ? 'checked' : 'disabled'}> Ses favoris → mes favoris (${nF})</label>
+      <label><input type="checkbox" id="sh-t" ${nT ? 'checked' : 'disabled'}> Ses lieux à visiter → mes lieux à visiter (${nT})</label>
+      <label><input type="checkbox" id="sh-d" ${nD ? '' : 'disabled'}> Ses lieux visités → mes lieux à visiter (${nD})</label>
+      <p style="margin-top:10px;font-size:12px;color:var(--muted)">Tes propres marques ne sont jamais remplacées.</p>
+      <div class="actions"><button id="sh-no">Ignorer</button><button class="primary" id="sh-yes">Ajouter</button></div>`;
+    dialogEl.classList.remove('hidden');
+    document.getElementById('sh-no').onclick = () => { closeDialog(); setHash(''); };
+    document.getElementById('sh-yes').onclick = () => {
+      let added = 0;
+      const wantF = document.getElementById('sh-f').checked, wantT = document.getElementById('sh-t').checked, wantD = document.getElementById('sh-d').checked;
+      const addFav = (id) => { const m = Object.assign({}, markOf(id)); if (!m.fav) { m.fav = true; m.t = Date.now(); marks[id] = m; added++; } };
+      const addTodo = (id) => { const m = Object.assign({}, markOf(id)); if (!m.st) { m.st = 'todo'; m.t = Date.now(); marks[id] = m; added++; } };
+      if (wantF) sh.fav.forEach(addFav);
+      if (wantT) sh.todo.forEach(addTodo);
+      if (wantD) sh.done.forEach(addTodo);
+      saveMarks(); closeDialog(); setHash('');
+      setSide(true); setMode(wantF && nF ? 'fav' : 'todo');
+      document.getElementById('mode-title').innerHTML += ' · ' + added + ' marque(s) ajoutée(s)';
+      poiLayer.changed();
+    };
+  }
+  function handleHash() {
+    const h = location.hash.replace(/^#/, '');
+    let m = h.match(/^lieu-(\d+)$/);
+    if (m && byId[m[1]]) { goToFeature(byId[m[1]]); return true; }
+    m = h.match(/^partage=(.*)$/);
+    if (m) { offerShared(parseShared(m[1])); return true; }
+    return false;
+  }
+  window.addEventListener('hashchange', handleHash);
+  document.getElementById('marks-share').onclick = () => {
+    const { url, n } = sharedLinkFromMarks();
+    const msg = document.getElementById('marks-share-msg');
+    if (!n) { msg.textContent = 'Aucune marque à partager pour l\'instant.'; return; }
+    shareLink(url, 'Mes lieux sur la carte de Leonida', msg);
+  };
+  dialogEl.addEventListener('click', (e) => { if (e.target === dialogEl) { closeDialog(); setHash(''); } });
+
   buildPanel();
   listEl.prepend(placeBox);
   refreshPoints();
 
-  rebuildView(true);   // limites de zoom adaptées à la fenêtre + vue d'ensemble
+  rebuildView(true);   // limites de zoom adaptées à la fenêtre + dernière vue (ou vue d'ensemble)
+  setTimeout(handleHash, 0);   // lien vers un lieu ou marques partagées
   mapEl.focus();
 })();
 </script>

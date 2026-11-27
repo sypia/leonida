@@ -836,7 +836,7 @@
   });
   // Style inspiré de l'affiche « Visit Leonida » : texte blanc sans contour, posé sur le fond de carte.
   //  - comtés : grandes capitales étroites (Oswald) ;
-  //  - grandes villes : capitales étroites, un peu plus petites ;
+  //  - grandes villes : capitales larges (Montserrat) ;
   //  - villes : minuscules grasses (Montserrat) ;
   //  - quartiers, îles, zones : petites capitales étroites.
   const GRANDES_VILLES = new Set(['Vice City', 'Port Gellhorn', 'Hamlet', 'Vice Beach', 'VCIA']);
@@ -850,8 +850,8 @@
     return 'quartier';
   }
   const LABEL_KINDS = {
-    comte:    { font: '300 26px ' + OSWALD,      upper: true },
-    grande:   { font: '300 18px ' + OSWALD,      upper: true },
+    comte:    { font: '300 26px ' + OSWALD,      upper: true },   // étroit
+    grande:   { font: '500 17px ' + MONTSERRAT,  upper: true },   // large, comme VICE CITY sur l'affiche
     ville:    { font: '500 13.5px ' + MONTSERRAT, upper: false },
     quartier: { font: '300 13px ' + OSWALD,      upper: true }
   };
@@ -870,7 +870,7 @@
     style: (f, res) => {
       const z = zoomForRes(res), n = f.get('lvl');
       const r = f.get('reg'), kind = labelKind(r);
-      if (kind === 'comte' && z > 2.8) return null;
+      if (kind === 'comte' && z > 1.9) return null;   // les comtés s'effacent vite quand on zoome
       if ((kind === 'grande' || kind === 'ville') && (z < 1.0 || z > 5.2)) return null;
       if (kind === 'quartier' && n === 2 && (z < 1.6 || z > 5.2)) return null;
       if (n >= 3 && kind !== 'grande' && z < 3.3) return null;

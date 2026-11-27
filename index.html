@@ -7,11 +7,8 @@
 <link rel="stylesheet" href="lib/ol.css">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
-  @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Oswald'; font-weight: 500; font-display: swap; src: url(lib/polices/oswald-latin-500-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Montserrat'; font-weight: 600; font-display: swap; src: url(lib/polices/montserrat-latin-600-normal.woff2) format('woff2'); }
-  /* Noms de lieux : ombre douce sous le texte blanc, à la place d'un contour noir */
-  .labels-layer canvas { filter: drop-shadow(0 1px 1.5px rgba(4, 24, 28, 0.75)) drop-shadow(0 0 4px rgba(4, 24, 28, 0.35)); }
+  @font-face { font-family: 'Oswald'; font-weight: 300; font-display: swap; src: url(lib/polices/oswald-latin-300-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 500; font-display: swap; src: url(lib/polices/montserrat-latin-500-normal.woff2) format('woff2'); }
   :root {
     --ocean: #2f90b0;
     --panel: rgba(18, 28, 36, 0.82);
@@ -837,7 +834,7 @@
       return z >= 3.5 ? borderStyles[3] : null;
     }
   });
-  // Style inspiré de l'affiche « Visit Leonida » : texte blanc, fin liseré, ombre douce (CSS .labels-layer).
+  // Style inspiré de l'affiche « Visit Leonida » : texte blanc sans contour, posé sur le fond de carte.
   //  - comtés : grandes capitales étroites (Oswald) ;
   //  - grandes villes : capitales étroites, un peu plus petites ;
   //  - villes : minuscules grasses (Montserrat) ;
@@ -853,10 +850,10 @@
     return 'quartier';
   }
   const LABEL_KINDS = {
-    comte:    { font: '500 24px ' + OSWALD,      upper: true },
-    grande:   { font: '500 17px ' + OSWALD,      upper: true },
-    ville:    { font: '600 13.5px ' + MONTSERRAT, upper: false },
-    quartier: { font: '400 12.5px ' + OSWALD,    upper: true }
+    comte:    { font: '300 26px ' + OSWALD,      upper: true },
+    grande:   { font: '300 18px ' + OSWALD,      upper: true },
+    ville:    { font: '500 13.5px ' + MONTSERRAT, upper: false },
+    quartier: { font: '300 13px ' + OSWALD,      upper: true }
   };
   const labelStyleCache = {};
   function labelStyle(r) {
@@ -864,14 +861,12 @@
     if (!labelStyleCache[k]) {
       const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
       labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
-        fill: new ol.style.Fill({ color: '#ffffff' }),
-        stroke: new ol.style.Stroke({ color: 'rgba(10, 40, 44, 0.35)', width: 1.5 }) }) });
+        fill: new ol.style.Fill({ color: '#ffffff' }) }) });
     }
     return labelStyleCache[k];
   }
   const labelLayer = new ol.layer.Vector({
     source: labelSource, declutter: true, updateWhileAnimating: true, updateWhileInteracting: true,
-    className: 'labels-layer',   // canevas à part, pour l'ombre CSS
     style: (f, res) => {
       const z = zoomForRes(res), n = f.get('lvl');
       const r = f.get('reg'), kind = labelKind(r);
@@ -882,12 +877,11 @@
       return labelStyle(r);
     }
   });
-  // Frontières sous les marqueurs, noms au-dessus (sinon les bulles les cachent).
-  // Les clics ne visent que la couche des points, les noms ne gênent donc pas.
+  // Frontières juste au-dessus du fond de carte.
   map.getLayers().insertAt(1, borderLayer);
-  map.addLayer(labelLayer);
+
   if (document.fonts && document.fonts.load) {
-    Promise.all(['500 24px Oswald', '400 12px Oswald', '600 14px Montserrat'].map(f => document.fonts.load(f)))
+    Promise.all(['300 26px Oswald', '500 14px Montserrat'].map(f => document.fonts.load(f)))
       .then(() => { labelLayer.changed(); }).catch(() => {});
   }
   // Zone mise en surbrillance après une recherche de zone
@@ -896,6 +890,8 @@
     fill: new ol.style.Fill({ color: 'rgba(255, 209, 102, 0.14)' }),
     stroke: new ol.style.Stroke({ color: '#ffd166', width: 3 }) }) });
   map.getLayers().insertAt(2, hlLayer);
+  // Noms posés sur le fond de carte : au-dessus des frontières, sous les points et les épingles
+  map.getLayers().insertAt(3, labelLayer);
   function applyLayerToggles() {
     labelLayer.setVisible(showNames); borderLayer.setVisible(showBorders);
     document.getElementById('show-names').checked = showNames;

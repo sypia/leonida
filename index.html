@@ -7,10 +7,11 @@
 <link rel="stylesheet" href="lib/ol.css">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
-  @font-face { font-family: 'Oswald'; font-weight: 600; font-display: swap; src: url(lib/polices/oswald-latin-600-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Oswald'; font-weight: 700; font-display: swap; src: url(lib/polices/oswald-latin-700-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Montserrat'; font-weight: 700; font-display: swap; src: url(lib/polices/montserrat-latin-700-normal.woff2) format('woff2'); }
-  @font-face { font-family: 'Montserrat'; font-weight: 800; font-display: swap; src: url(lib/polices/montserrat-latin-800-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Oswald'; font-weight: 500; font-display: swap; src: url(lib/polices/oswald-latin-500-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Montserrat'; font-weight: 600; font-display: swap; src: url(lib/polices/montserrat-latin-600-normal.woff2) format('woff2'); }
+  /* Noms de lieux : ombre douce sous le texte blanc, à la place d'un contour noir */
+  .labels-layer canvas { filter: drop-shadow(0 1px 1.5px rgba(4, 24, 28, 0.75)) drop-shadow(0 0 4px rgba(4, 24, 28, 0.35)); }
   :root {
     --ocean: #2f90b0;
     --panel: rgba(18, 28, 36, 0.82);
@@ -836,7 +837,7 @@
       return z >= 3.5 ? borderStyles[3] : null;
     }
   });
-  // Style inspiré de l'affiche « Visit Leonida » : texte blanc, contour sombre.
+  // Style inspiré de l'affiche « Visit Leonida » : texte blanc, fin liseré, ombre douce (CSS .labels-layer).
   //  - comtés : grandes capitales étroites (Oswald) ;
   //  - grandes villes : capitales étroites, un peu plus petites ;
   //  - villes : minuscules grasses (Montserrat) ;
@@ -852,25 +853,25 @@
     return 'quartier';
   }
   const LABEL_KINDS = {
-    comte:    { font: '700 25px ' + OSWALD,      upper: true,  stroke: 5 },
-    grande:   { font: '700 18px ' + OSWALD,      upper: true,  stroke: 4.5 },
-    ville:    { font: '800 14px ' + MONTSERRAT,  upper: false, stroke: 4 },
-    quartier: { font: '600 12.5px ' + OSWALD,    upper: true,  stroke: 3.2 }
+    comte:    { font: '500 24px ' + OSWALD,      upper: true },
+    grande:   { font: '500 17px ' + OSWALD,      upper: true },
+    ville:    { font: '600 13.5px ' + MONTSERRAT, upper: false },
+    quartier: { font: '400 12.5px ' + OSWALD,    upper: true }
   };
   const labelStyleCache = {};
   function labelStyle(r) {
     const kind = labelKind(r), k = kind + '|' + r.t;
     if (!labelStyleCache[k]) {
       const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
-      // Un seul texte par nom : avec le « declutter », un 2e texte (ombre) masquerait le 1er
       labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
         fill: new ol.style.Fill({ color: '#ffffff' }),
-        stroke: new ol.style.Stroke({ color: 'rgba(12, 38, 42, 0.88)', width: K.stroke }) }) });
+        stroke: new ol.style.Stroke({ color: 'rgba(10, 40, 44, 0.35)', width: 1.5 }) }) });
     }
     return labelStyleCache[k];
   }
   const labelLayer = new ol.layer.Vector({
     source: labelSource, declutter: true, updateWhileAnimating: true, updateWhileInteracting: true,
+    className: 'labels-layer',   // canevas à part, pour l'ombre CSS
     style: (f, res) => {
       const z = zoomForRes(res), n = f.get('lvl');
       const r = f.get('reg'), kind = labelKind(r);
@@ -886,7 +887,7 @@
   map.getLayers().insertAt(1, borderLayer);
   map.addLayer(labelLayer);
   if (document.fonts && document.fonts.load) {
-    Promise.all(['700 25px Oswald', '600 11px Oswald', '800 14px Montserrat'].map(f => document.fonts.load(f)))
+    Promise.all(['500 24px Oswald', '400 12px Oswald', '600 14px Montserrat'].map(f => document.fonts.load(f)))
       .then(() => { labelLayer.changed(); }).catch(() => {});
   }
   // Zone mise en surbrillance après une recherche de zone

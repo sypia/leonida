@@ -84,6 +84,14 @@
   .cat.on .box { border-color: transparent; }
   .cat .box svg { width: 10px; height: 10px; stroke: #10181e; stroke-width: 3; fill: none; opacity: 0; }
   .cat.on .box svg { opacity: 1; }
+  .cat .ico { width: 16px; height: 16px; flex: none; display: grid; place-items: center; }
+  .cat .ico svg { width: 16px; height: 16px; }
+  .cat:not(.on) .ico { opacity: 0.45; }
+  .badge { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35); color: #10181e; }
+  .badge svg { width: 13px; height: 13px; stroke-width: 2.4; }
+  .mk .badge { margin-top: 1px; }
+  .popup .cat-line .badge { width: 18px; height: 18px; }
+  .popup .cat-line .badge svg { width: 12px; height: 12px; }
   .cat .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cat .n { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .cat:not(.on) .label { color: var(--muted); }
@@ -258,6 +266,7 @@
 
 <script src="lib/ol.js"></script>
 <script src="donnees/points_mapgenie.js"></script>
+<script src="lib/icones.js"></script>
 <script>
 (function () {
   'use strict';
@@ -538,6 +547,27 @@
   DATA.categories.forEach(c => { catById[c.id] = c; });
   const regionById = {};
   DATA.regions.forEach(r => { regionById[r.id] = r.title; });
+  // --- Pictogrammes (lib/icones.js) ---
+  const ICONES = window.ICONES || {}, ICONE_CAT = window.ICONE_CAT || {}, ICONE_GROUPE = window.ICONE_GROUPE || {};
+  const groupOf = (c) => groups.find(x => x.id === c.group_id);
+  const iconKeyOf = (c) => ICONE_CAT[c.title] || (groupOf(c) && ICONE_GROUPE[groupOf(c).title]) || 'star';
+  // Pictogramme en HTML (panneau, listes) : trait de la couleur courante
+  const iconHtml = (key) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONES[key] || ICONES.star}</svg>`;
+  // Pastille ronde colorée avec pictogramme sombre (listes)
+  const badgeHtml = (color, key) => `<span class="badge" style="background:${color}">${iconHtml(key)}</span>`;
+  // Marqueur de carte : image SVG dessinée en double résolution (affichée à 50 %, nette sur Retina)
+  const markerCache = {};
+  function markerUri(color, key, sel) {
+    const k = color + key + (sel ? 's' : '');
+    if (!markerCache[k]) {
+      const D = sel ? 64 : 52, r = D / 2 - (sel ? 3 : 2), sc = (D * 0.54) / 24, off = (D - 24 * sc) / 2;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${D}" height="${D}" viewBox="0 0 ${D} ${D}">` +
+        `<circle cx="${D / 2}" cy="${D / 2}" r="${r}" fill="${color}" stroke="${sel ? '#ffffff' : 'rgba(10,18,24,0.85)'}" stroke-width="${sel ? 5 : 3}"/>` +
+        `<g transform="translate(${off} ${off}) scale(${sc})" fill="none" stroke="#10181e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${ICONES[key] || ICONES.star}</g></svg>`;
+      markerCache[k] = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+    return markerCache[k];
+  }
   const countByCat = {};
   DATA.locations.forEach(l => { countByCat[l.c] = (countByCat[l.c] || 0) + 1; });
 
@@ -554,6 +584,7 @@
     const f = new ol.Feature({ geometry: new ol.geom.Point([l.x, -l.y]) });
     f.set('loc', l);
     f.set('color', groupColor[catById[l.c].group_id] || '#fff');
+    f.set('icon', iconKeyOf(catById[l.c]));
     return f;
   });
 
@@ -598,25 +629,21 @@
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
-  // Pastille + marques : anneau doré = favori, anneau blanc = à visiter, estompé avec coche = visité
-  function pointStyle(color, selected, m) {
+  // Marqueur + marques : anneau doré = favori, cercle blanc pointillé = à visiter,
+  // estompé avec une coche verte = visité (estompé seulement dans l'onglet « Tous »)
+  function pointStyle(color, icon, selected, m) {
     const fav = !!m.fav, st = m.st || '';
-    // Les lieux visités ne sont estompés que dans l'onglet "Tous" (dans l'onglet "Visités" ils doivent rester bien visibles)
     const dim = st === 'done' && mode === 'all';
-    const k = color + (selected ? 's' : '') + (fav ? 'f' : '') + st + (dim ? 'd' : '');
+    const k = color + icon + (selected ? 's' : '') + (fav ? 'f' : '') + st + (dim ? 'd' : '');
     if (!styleCache[k]) {
-      const done = dim;
-      const r = selected ? 8 : 6;
+      const R = selected ? 16 : 13;   // rayon du marqueur à l'écran
       const styles = [];
-      if (fav) styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: r + 4.5, fill: new ol.style.Fill({ color: 'rgba(255, 209, 102, 0.25)' }), stroke: new ol.style.Stroke({ color: '#ffd166', width: 2.5 }) }) }));
-      if (st === 'todo') styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: r + (fav ? 8 : 4), stroke: new ol.style.Stroke({ color: '#ffffff', width: 2, lineDash: [3, 2.5] }) }) }));
-      styles.push(new ol.style.Style({
-        image: new ol.style.Circle({
-          radius: r,
-          fill: new ol.style.Fill({ color: done ? hexA(color, 0.45) : color }),
-          stroke: new ol.style.Stroke({ color: selected ? '#ffffff' : (done ? 'rgba(10, 18, 24, 0.5)' : 'rgba(10, 18, 24, 0.85)'), width: selected ? 3 : 1.6 })
-        }),
-        text: st === 'done' ? new ol.style.Text({ text: '✓', font: '700 10px -apple-system, BlinkMacSystemFont, sans-serif', fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(0, 0, 0, 0.6)', width: 2 }) }) : undefined
+      if (fav) styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: R + 4.5, fill: new ol.style.Fill({ color: 'rgba(255, 209, 102, 0.28)' }), stroke: new ol.style.Stroke({ color: '#ffd166', width: 2.5 }) }) }));
+      if (st === 'todo') styles.push(new ol.style.Style({ image: new ol.style.Circle({ radius: R + (fav ? 8.5 : 4.5), stroke: new ol.style.Stroke({ color: '#ffffff', width: 2, lineDash: [3, 2.5] }) }) }));
+      styles.push(new ol.style.Style({ image: new ol.style.Icon({ src: markerUri(color, icon, selected), scale: 0.5, opacity: dim ? 0.5 : 1 }) }));
+      if (st === 'done') styles.push(new ol.style.Style({
+        image: new ol.style.Circle({ radius: 6, displacement: [R * 0.72, R * 0.72], fill: new ol.style.Fill({ color: '#2fbf71' }), stroke: new ol.style.Stroke({ color: '#ffffff', width: 1.5 }) }),
+        text: new ol.style.Text({ text: '✓', offsetX: R * 0.72, offsetY: -R * 0.72, font: '700 9px -apple-system, BlinkMacSystemFont, sans-serif', fill: new ol.style.Fill({ color: '#ffffff' }) })
       }));
       styleCache[k] = styles;
     }
@@ -650,7 +677,7 @@
       const fs = cf.get('features');
       if (fs.length > 1) return clusterStyle(fs.length);
       const f = fs[0];
-      return pointStyle(f.get('color'), f.get('loc').id === selectedId, markOf(f.get('loc').id));
+      return pointStyle(f.get('color'), f.get('icon'), f.get('loc').id === selectedId, markOf(f.get('loc').id));
     }
   });
   map.addLayer(poiLayer);
@@ -678,7 +705,7 @@
         <span class="tog" data-tog="${g.id}">tout / rien</span></div><div class="cats">`);
       for (const c of cats) {
         html.push(`<div class="cat" data-c="${c.id}" data-name="${esc((c.title + ' ' + g.title).toLowerCase())}">
-          <span class="box" style="--col:${col}">${CHECK}</span><span class="label">${esc(c.title)}</span><span class="n">${countByCat[c.id] || 0}</span></div>`);
+          <span class="box" style="--col:${col}">${CHECK}</span><span class="ico" style="color:${col}">${iconHtml(iconKeyOf(c))}</span><span class="label">${esc(c.title)}</span><span class="n">${countByCat[c.id] || 0}</span></div>`);
       }
       html.push('</div></div>');
     }
@@ -770,7 +797,7 @@
     placeBox.innerHTML = `<div class="res-head">Lieux trouvés : <b>${res.length}</b></div>` +
       shown.map(f => {
         const l = f.get('loc'), c = catById[l.c];
-        return `<div class="mk res" data-id="${l.id}"><span class="dot" style="background:${f.get('color')}"></span>
+        return `<div class="mk res" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
           <div><div class="t">${esc(l.t)}</div><div class="s">${esc(c.title)} · ${esc(regionById[l.r] || '')}</div></div></div>`;
       }).join('') +
       (res.length > MAX_RESULTS ? `<div class="res-more">… et ${res.length - MAX_RESULTS} autres : précise ta recherche</div>` : '') +
@@ -848,7 +875,7 @@
       if (imgs.length > 1) h += '<div class="ph-strip">' + imgs.map((u, i) => `<img src="${esc(u)}" data-i="${i}" class="${i ? '' : 'sel'}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('') + '</div>';
     }
     h += `<div class="body${imgs.length ? '' : ' noimg'}">
-      <div class="cat-line"><span class="dot" style="background:${col}"></span>${esc(g ? g.title : '')} · ${esc(c.title)}</div>
+      <div class="cat-line">${badgeHtml(col, f.get('icon'))}${esc(g ? g.title : '')} · ${esc(c.title)}</div>
       <h3>${esc(l.t)}</h3>
       <div class="region">${esc(regionById[l.r] || '')}</div>
       <div class="marks">
@@ -986,7 +1013,7 @@
     marksListEl.innerHTML = ids.map(id => {
       const f = byId[id], l = f.get('loc'), m = markOf(id), c = catById[l.c];
       const b = (m.fav ? '<span class="f">★</span>' : '') + (m.st === 'todo' ? ' <span class="o">◎</span>' : '') + (m.st === 'done' ? ' <span class="d">✓</span>' : '');
-      return `<div class="mk" data-id="${id}"><span class="dot" style="background:${f.get('color')}"></span>
+      return `<div class="mk" data-id="${id}">${badgeHtml(f.get('color'), f.get('icon'))}
         <div><div class="t">${esc(l.t)}</div><div class="s">${esc(c.title)} · ${esc(regionById[l.r] || '')}</div></div>
         <span class="badges">${b}</span></div>`;
     }).join('');

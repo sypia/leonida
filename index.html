@@ -124,6 +124,24 @@
   .opt { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 12px; color: var(--muted); cursor: pointer; }
   .opt input { margin: 0; accent-color: #7ee2a8; }
   .layers-row { display: flex; gap: 16px; margin-top: 2px; }
+  /* Ligne « Afficher » : épingles et lieux marqués visibles ou non sur la carte */
+  .show-row { display: grid; grid-template-columns: auto 1fr 1fr; column-gap: 12px; margin-top: 2px; }
+  .show-row .show-lbl { grid-row: span 2; margin-top: 9px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  /* Jeu / Visiter Leonida */
+  .family { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 10px; padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.25); }
+  .family button { height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
+  .family button:hover { color: var(--text); }
+  .family button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
+  /* Tri par prix */
+  .cat .price-btn { flex: none; margin-left: 4px; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: #7ee2a8; border: 1px solid rgba(126, 226, 168, 0.45); cursor: pointer; }
+  .cat .price-btn:hover { background: rgba(126, 226, 168, 0.15); }
+  .price-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 6px 6px; }
+  .price-head b { font-size: 13px; }
+  .price-filter { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px 6px; }
+  .price-filter button { border: 1px solid rgba(255, 255, 255, 0.14); background: transparent; color: var(--muted); border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 11px; cursor: pointer; }
+  .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
+  .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
+  .mk .price.none { color: var(--muted); font-weight: 500; }
   .mode-title { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .mode-title b { color: var(--text); }
 
@@ -187,9 +205,13 @@
   .popup .desc a { color: #8fd3f0; }
   .popup .close {
     position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
-    background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 15px; line-height: 26px; text-align: center; z-index: 2;
+    background: rgba(0, 0, 0, 0.55); color: #fff; z-index: 2;
+    display: grid; place-items: center; padding: 0;   /* croix dessinée en SVG : parfaitement centrée */
   }
   .popup .close:hover { background: rgba(0, 0, 0, 0.8); }
+  /* Le cadre de la bulle ne doit pas intercepter les clics sur le point juste dessous */
+  .ol-overlay-container, .ol-overlay-container.ol-selectable { pointer-events: none !important; }
+  .ol-overlay-container > * { pointer-events: auto; }
   .popup .noimg { padding-top: 34px; }
   .popup .share-place {
     margin-top: 6px; width: 100%; height: 30px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.14);
@@ -307,7 +329,18 @@
       <label class="opt"><input type="checkbox" id="show-names"> Noms des lieux</label>
       <label class="opt"><input type="checkbox" id="show-borders"> Frontières</label>
     </div>
+    <div class="show-row" id="show-row">
+      <span class="show-lbl">Sur la carte :</span>
+      <label class="opt"><input type="checkbox" data-show="pins"> Épingles</label>
+      <label class="opt"><input type="checkbox" data-show="fav"> Favoris</label>
+      <label class="opt"><input type="checkbox" data-show="todo"> À visiter</label>
+      <label class="opt"><input type="checkbox" data-show="done"> Visités</label>
+    </div>
     <div id="tools-all">
+      <div class="family" id="family" role="group" aria-label="Type de lieux">
+        <button data-fam="jeu" title="Objets à trouver, braquages, cascades, courses…">Jeu</button>
+        <button data-fam="visite" title="Restos, bars, boutiques, transports, lieux à voir…">Visiter Leonida</button>
+      </div>
       <div class="side-tools">
         <input id="cat-search" type="search" placeholder="Rechercher un lieu, une catégorie…" autocomplete="off" spellcheck="false">
       </div>
@@ -316,7 +349,6 @@
         <button id="all-off">Tout masquer</button>
         <button id="fold-all">Replier</button>
       </div>
-      <label class="opt"><input type="checkbox" id="hide-done"> Masquer les lieux visités</label>
     </div>
     <div id="tools-marks" class="hidden">
       <div class="mode-title" id="mode-title"></div>
@@ -350,6 +382,8 @@
 <script src="donnees/points_mapgenie.js"></script>
 <script src="lib/icones.js"></script>
 <script src="donnees/regions.js"></script>
+<script src="donnees/eaux.js"></script>
+<script src="donnees/familles.js"></script>
 <script src="donnees/traduction_fr.js"></script>
 <script src="donnees/lieux_fr.js"></script>
 <script>
@@ -668,6 +702,7 @@
     DATA.categories.forEach(c => { c.title = fr ? c.fr : c.en; });
     DATA.regions.forEach(r => { r.title = fr ? r.fr : r.en; regionById[r.id] = r.title; });
     REGIONS_ALL.forEach(r => { r.t = fr ? r.fr : r.en; });
+    (window.EAUX || []).forEach(e => { e.t = fr ? e.fr : e.en; });
     DATA.locations.forEach(l => { l.t = fr ? l.tFr : l.tEn; l.d = fr ? l.dFr : l.dEn; });
   }
   applyLangData();
@@ -730,14 +765,32 @@
   const hasMark = (id, kind) => kind === 'fav' ? !!markOf(id).fav : markOf(id).st === kind;
 
   let mode = 'all';            // all | fav | todo | done
-  let hideDone = false;
-  try { hideDone = localStorage.getItem('leonida.masquerVisites') === '1'; } catch (e) {}
+  // Ligne « Afficher » : ce qui est décoché disparaît de la carte (onglet « Tous »).
+  // Reprend l'ancien réglage « Masquer les lieux visités ».
+  const SHOW_KEY = 'leonida.afficher.v1';
+  const show = { pins: true, fav: true, todo: true, done: true };
+  try {
+    const a = JSON.parse(localStorage.getItem(SHOW_KEY) || 'null');
+    if (a) Object.keys(show).forEach(k => { if (a[k] === false) show[k] = false; });
+    else if (localStorage.getItem('leonida.masquerVisites') === '1') show.done = false;
+  } catch (e) {}
+  const saveShow = () => { try { localStorage.setItem(SHOW_KEY, JSON.stringify(show)); } catch (e) {} };
+  const hiddenByMarks = (id) => { const m = markOf(id); return (m.fav && !show.fav) || (m.st === 'todo' && !show.todo) || (m.st === 'done' && !show.done); };
+
+  // Deux familles de lieux : « Jeu » et « Visiter Leonida » (certaines catégories sont dans les deux)
+  const FAM_KEY = 'leonida.famille.v1';
+  let family = 'jeu';
+  try { if (localStorage.getItem(FAM_KEY) === 'visite') family = 'visite'; } catch (e) {}
+  const famOf = (c) => (window.FAMILLE_CAT || {})[c.en] || 'jeu';
+  const inFamily = (c) => { const f = famOf(c); return f === 'both' || f === family; };
+  // Catégories dont les fiches donnent un prix de revente (« Sell Value »)
+  const PRICE_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
 
   const pointSource = new ol.source.Vector();
   function refreshPoints() {
     pointSource.clear(true);
     let list;
-    if (mode === 'all') list = allFeatures.filter(f => enabled.has(f.get('loc').c) && !(hideDone && hasMark(f.get('loc').id, 'done')));
+    if (mode === 'all') list = allFeatures.filter(f => { const l = f.get('loc'); return enabled.has(l.c) && inFamily(catById[l.c]) && !hiddenByMarks(l.id); });
     else list = allFeatures.filter(f => hasMark(f.get('loc').id, mode));
     pointSource.addFeatures(list);
     updateCounts();
@@ -817,6 +870,11 @@
     polys.forEach(poly => { const f = new ol.Feature(new ol.geom.Polygon(poly)); f.set('lvl', r.n); borderSource.addFeature(f); });
     if (r.c) { const f = new ol.Feature(new ol.geom.Point([r.c[0], -r.c[1]])); f.set('lvl', r.n); f.set('reg', r); labelSource.addFeature(f); }
   });
+  // Étendues d'eau (donnees/eaux.js) : même couche que les noms de lieux
+  (window.EAUX || []).forEach(e => {
+    e.eau = e.s;
+    const f = new ol.Feature(new ol.geom.Point([e.c[0], -e.c[1]])); f.set('lvl', 0); f.set('reg', e); labelSource.addFeature(f);
+  });
   const LAYERS_KEY = 'leonida.affichage.v1';
   let showNames = true, showBorders = true;
   try { const a = JSON.parse(localStorage.getItem(LAYERS_KEY) || '{}'); if (a.names === false) showNames = false; if (a.borders === false) showBorders = false; } catch (e) {}
@@ -844,6 +902,7 @@
     'Watson Bay', 'Grassrivers', 'Key Lento', 'Southwind', 'Draper Island', 'Mile Zero Air Station']);
   const OSWALD = "Oswald, 'Arial Narrow', sans-serif", MONTSERRAT = "Montserrat, -apple-system, 'Segoe UI', sans-serif";
   function labelKind(r) {
+    if (r.eau) return 'eau' + r.eau;
     if (r.n === 1) return 'comte';
     if (GRANDES_VILLES.has(r.en)) return 'grande';
     if (VILLES.has(r.en)) return 'ville';
@@ -853,7 +912,11 @@
     comte:    { font: '400 26px ' + OSWALD,      upper: true },   // étroit
     grande:   { font: '600 17px ' + MONTSERRAT,  upper: true },   // large, comme VICE CITY sur l'affiche
     ville:    { font: '600 13.5px ' + MONTSERRAT, upper: false },
-    quartier: { font: '400 13px ' + OSWALD,      upper: true }
+    quartier: { font: '400 13px ' + OSWALD,      upper: true },
+    // Étendues d'eau : italique à empattements, bleu-gris, comme sur l'affiche
+    eau1:     { font: 'italic 400 20px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.78)', noStroke: true },
+    eau2:     { font: 'italic 400 14px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.75)', noStroke: true },
+    eau3:     { font: 'italic 400 13px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.75)', noStroke: true }
   };
   const labelStyleCache = {};
   function labelStyle(r) {
@@ -861,8 +924,8 @@
     if (!labelStyleCache[k]) {
       const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
       labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
-        fill: new ol.style.Fill({ color: '#ffffff' }),
-        stroke: new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 1.6 }) }) });   // mini bord gris
+        fill: new ol.style.Fill({ color: K.color || '#ffffff' }),
+        stroke: K.noStroke ? undefined : new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 1.6 }) }) });   // mini bord gris
     }
     return labelStyleCache[k];
   }
@@ -871,6 +934,9 @@
     style: (f, res) => {
       const z = zoomForRes(res), n = f.get('lvl');
       const r = f.get('reg'), kind = labelKind(r);
+      if (kind === 'eau1') return z > 3.6 ? null : labelStyle(r);
+      if (kind === 'eau2') return (z < 1.1 || z > 5.6) ? null : labelStyle(r);
+      if (kind === 'eau3') return (z < 2.2) ? null : labelStyle(r);
       if (kind === 'comte' && z > 1.9) return null;   // les comtés s'effacent vite quand on zoome
       if ((kind === 'grande' || kind === 'ville') && (z < 1.0 || z > 5.2)) return null;
       if (kind === 'quartier' && n === 2 && (z < 1.6 || z > 5.2)) return null;
@@ -920,18 +986,20 @@
     const html = [];
     for (const g of groups) {
       const col = groupColor[g.id];
-      const cats = g.cats.map(id => catById[id]).filter(Boolean).sort((a, b) => a.order - b.order);
+      const cats = g.cats.map(id => catById[id]).filter(c => c && inFamily(c)).sort((a, b) => a.order - b.order);
+      if (!cats.length) continue;
       html.push(`<div class="grp" data-g="${g.id}">
         <div class="grp-head"><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
         <span class="dot" style="background:${col}"></span><span class="name">${esc(g.title)}</span>
         <span class="tog" data-tog="${g.id}">tout / rien</span></div><div class="cats">`);
       for (const c of cats) {
         html.push(`<div class="cat" data-c="${c.id}" data-name="${esc([c.en, c.fr || '', g.en, g.fr || ''].join(' ').toLowerCase())}">
-          <span class="box" style="--col:${col}">${CHECK}</span><span class="ico" style="color:${col}">${iconHtml(iconKeyOf(c))}</span><span class="label">${esc(c.title)}</span><span class="n">${countByCat[c.id] || 0}</span></div>`);
+          <span class="box" style="--col:${col}">${CHECK}</span><span class="ico" style="color:${col}">${iconHtml(iconKeyOf(c))}</span><span class="label">${esc(c.title)}</span>${PRICE_CATS.has(c.en) ? '<span class="price-btn" data-price="' + c.id + '" title="Trier par prix de revente">$ ↓</span>' : ''}<span class="n">${countByCat[c.id] || 0}</span></div>`);
       }
       html.push('</div></div>');
     }
     listEl.innerHTML = html.join('');
+    delete listEl.dataset.view;
     syncChecks();
   }
   function syncChecks() {
@@ -944,7 +1012,11 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
+    if (mode === 'all') {
+      const famCats = DATA.categories.filter(inFamily);
+      const famPts = famCats.reduce((n, c) => n + (countByCat[c.id] || 0), 0);
+      countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${famPts.toLocaleString('fr-CH')} · ${famCats.filter(c => enabled.has(c.id)).length} catégories sur ${famCats.length}`;
+    }
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
     for (const id in marks) { const m = marks[id]; if (m.fav) n.fav++; if (m.st) n[m.st]++; }
@@ -956,10 +1028,13 @@
     if (tog) {
       e.stopPropagation();
       const g = groups.find(x => x.id === +tog.dataset.tog);
-      const allOn = g.cats.every(id => enabled.has(id));
-      g.cats.forEach(id => allOn ? enabled.delete(id) : enabled.add(id));
+      const ids = g.cats.filter(id => catById[id] && inFamily(catById[id]));
+      const allOn = ids.every(id => enabled.has(id));
+      ids.forEach(id => allOn ? enabled.delete(id) : enabled.add(id));
       saveEnabled(); syncChecks(); refreshPoints(); return;
     }
+    const pb = e.target.closest('[data-price]');
+    if (pb) { e.stopPropagation(); showPriceList(+pb.dataset.price); return; }
     const head = e.target.closest('.grp-head');
     if (head) { head.parentElement.classList.toggle('collapsed'); return; }
     const cat = e.target.closest('.cat');
@@ -969,8 +1044,8 @@
       saveEnabled(); syncChecks(); refreshPoints();
     }
   });
-  document.getElementById('all-on').onclick = () => { DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
-  document.getElementById('all-off').onclick = () => { enabled.clear(); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
+  document.getElementById('all-on').onclick = () => { DATA.categories.filter(inFamily).forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
+  document.getElementById('all-off').onclick = () => { DATA.categories.filter(inFamily).forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
   const foldBtn = document.getElementById('fold-all');
   foldBtn.onclick = () => {
     const grps = listEl.querySelectorAll('.grp');
@@ -1134,7 +1209,7 @@
     const col = f.get('color');
     const imgs = (l.m || []).map(u => /^https?:/.test(u) ? u : MEDIA + u);
     selectedId = l.id; poiLayer.changed();
-    let h = '<button class="close" aria-label="Fermer">×</button>';
+    let h = '<button class="close" aria-label="Fermer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
     if (imgs.length) {
       h += `<img class="ph" src="${esc(imgs[0])}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
       if (imgs.length > 1) h += '<div class="ph-strip">' + imgs.map((u, i) => `<img src="${esc(u)}" data-i="${i}" class="${i ? '' : 'sel'}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('') + '</div>';
@@ -1274,7 +1349,10 @@
     if (lpSuppress) { lpSuppress = false; return; }
     // Les épingles passent avant les points
     const pinHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === pinLayer, hitTolerance: 4 });
-    if (pinHit) { openPinCard(pinHit, PIN_STATE[pinHit.get('kind')]); return; }
+    if (pinHit) {
+      if (pinOpen && pinHit.get('kind') === 'own' && pinOpen.get('kind') === 'own' && pinOpen.get('pin').id === pinHit.get('pin').id) { closePopup(); return; }   // 2e clic : on referme
+      openPinCard(pinHit, PIN_STATE[pinHit.get('kind')]); return;
+    }
     // On récupère tout ce qui est sous le clic et on garde le plus proche du curseur
     const hits = [];
     map.forEachFeatureAtPixel(e.pixel, f => { hits.push(f); }, { layerFilter: l => l === poiLayer, hitTolerance: 5 });
@@ -1288,6 +1366,8 @@
       const ext = ol.extent.boundingExtent(fs.map(f => f.getGeometry().getCoordinates()));
       targetRes = null;
       view.fit(ext, { padding: [120, 120, 120, sideOpen() ? 420 : 120], duration: 450, maxZoom: view.getZoomForResolution(resForZoom(CLUSTER_OFF_ZOOM + 0.6)) });
+    } else if (popupFeature === fs[0]) {
+      closePopup();   // un 2e clic sur le même lieu referme sa fiche
     } else {
       openPopup(fs[0]);
     }
@@ -1310,8 +1390,11 @@
   const byId = {};
   allFeatures.forEach(f => { byId[f.get('loc').id] = f; });
 
+  // Épingles visibles selon la case « Afficher », toujours visibles dans leur onglet
+  function applyPinsVisible() { try { pinLayer.setVisible(show.pins || mode === 'pins'); } catch (e) {} }
   function setMode(m) {
     mode = m;
+    applyPinsVisible();
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
     const all = m === 'all';
     document.getElementById('tools-all').classList.toggle('hidden', !all);
@@ -1343,9 +1426,69 @@
   }
   // Aller à un lieu : centre la carte, zoome si besoin et ouvre la fiche.
   // Si sa catégorie était masquée, on la ré-affiche pour que le point soit visible.
+  // --- Jeu / Visiter Leonida ---
+  const famEl = document.getElementById('family');
+  function syncFamilyBtns() { famEl.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.fam === family)); }
+  function rebuildCategoryList() {
+    const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
+    buildPanel();
+    listEl.prepend(placeBox);
+    folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
+    searchEl.dispatchEvent(new Event('input'));
+  }
+  function setFamily(fam) {
+    if (fam === family) return;
+    family = fam;
+    try { localStorage.setItem(FAM_KEY, family); } catch (e) {}
+    syncFamilyBtns();
+    rebuildCategoryList();
+    if (popupFeature && !inFamily(catById[popupFeature.get('loc').c])) closePopup();
+    refreshPoints();
+  }
+  famEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-fam]'); if (b) setFamily(b.dataset.fam); });
+  syncFamilyBtns();
+
+  // --- Véhicules triés par prix de revente ---
+  const priceOf = (l) => { const m = (l.dEn || '').match(/\*\*Sell Value:?\*\*:?\s*\$?([\d,]+)/); return m ? +m[1].replace(/,/g, '') : null; };
+  const typeOf = (l) => { const m = (l.d || '').match(/\*\*Type ?:\*\*\s*([^\n]+)/); return m ? m[1].trim() : ''; };
+  const typeEnOf = (l) => { const m = (l.dEn || '').match(/\*\*Type:?\*\*:?\s*([^\n]+)/); return m ? m[1].trim() : ''; };
+  const PRICE_KINDS = {
+    boat: ['Riverboat', 'Personal Watercraft', 'Powerboat'],
+    air: ['Plane', 'Helicopter'],
+    bike: ['Chopper', 'Bicycle', 'Scooter', 'Superbike', 'Dirtbike', 'Quad Bike']
+  };
+  const kindOfType = (t) => Object.keys(PRICE_KINDS).find(k => PRICE_KINDS[k].includes(t)) || 'car';
+  const PRICE_FILTERS = [['all', 'Tous'], ['car', 'Voitures'], ['bike', 'Motos'], ['boat', 'Bateaux'], ['air', 'Avions']];
+  let priceFilter = 'all';
+  function showPriceList() {
+    const items = allFeatures.filter(f => PRICE_CATS.has(catById[f.get('loc').c].en))
+      .map(f => { const l = f.get('loc'); return { f, l, p: priceOf(l), kind: kindOfType(typeEnOf(l)) }; })
+      .filter(it => priceFilter === 'all' || it.kind === priceFilter)
+      .sort((a, b) => (b.p ?? -1) - (a.p ?? -1) || a.l.t.localeCompare(b.l.t, 'fr'));
+    const fmt = (n) => '$' + n.toLocaleString('fr-CH');
+    listEl.innerHTML = `<div class="price-head"><b>Véhicules par prix de revente</b><button class="mini-btn" data-price-back>← Catégories</button></div>
+      <div class="price-filter">${PRICE_FILTERS.map(([k, t]) => `<button data-pf="${k}" class="${k === priceFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
+      (items.length ? items.map(({ f, l, p }) => {
+        const c = catById[l.c], ty = typeOf(l);
+        return `<div class="mk res" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
+          <div><div class="t">${esc(l.t)}</div><div class="s">${esc(c.title)}${ty ? ' · ' + esc(ty) : ''}</div></div>
+          <span class="price${p == null ? ' none' : ''}">${p == null ? 'prix inconnu' : fmt(p)}</span></div>`;
+      }).join('') : '<div class="empty">Aucun véhicule de ce type.</div>');
+    listEl.dataset.view = 'price';
+  }
+  listEl.addEventListener('click', (e) => {
+    if (listEl.dataset.view !== 'price') return;
+    if (e.target.closest('[data-price-back]')) { delete listEl.dataset.view; rebuildCategoryList(); return; }
+    const pf = e.target.closest('[data-pf]');
+    if (pf) { priceFilter = pf.dataset.pf; showPriceList(); return; }
+    const it = e.target.closest('.mk[data-id]');
+    if (it) goToFeature(byId[it.dataset.id]);
+  }, true);
+
   function goToFeature(f) {
     if (!f) return;
     const l = f.get('loc');
+    if (mode === 'all' && !inFamily(catById[l.c])) setFamily(famOf(catById[l.c]) === 'visite' ? 'visite' : 'jeu');
     if (mode === 'all' && !enabled.has(l.c)) { enabled.add(l.c); saveEnabled(); syncChecks(); refreshPoints(); }
     if (window.innerWidth <= 600) setSide(false);   // sur téléphone, on libère la carte
     targetRes = null;
@@ -1360,13 +1503,13 @@
     const b = e.target.closest('button[data-mode]');
     if (b) setMode(b.dataset.mode);
   });
-  const hideDoneEl = document.getElementById('hide-done');
-  hideDoneEl.checked = hideDone;
-  hideDoneEl.onchange = () => {
-    hideDone = hideDoneEl.checked;
-    try { localStorage.setItem('leonida.masquerVisites', hideDone ? '1' : '0'); } catch (e) {}
-    refreshPoints();
-  };
+  document.querySelectorAll('#show-row input[data-show]').forEach(el => {
+    el.checked = show[el.dataset.show];
+    el.onchange = () => {
+      show[el.dataset.show] = el.checked; saveShow();
+      if (el.dataset.show === 'pins') applyPinsVisible(); else refreshPoints();
+    };
+  });
 
   // Export / import des marques (sauvegarde dans un fichier)
   document.getElementById('marks-export').onclick = () => {
@@ -1555,7 +1698,8 @@
       return out;
     }
   });
-  map.addLayer(pinLayer);   // au-dessus des points et des noms
+  map.addLayer(pinLayer);
+  applyPinsVisible();   // au-dessus des points et des noms
 
   function refreshPins() {
     pinSource.clear(true);
@@ -1586,7 +1730,7 @@
     const p = f.get('pin'), kind = f.get('kind');
     const place = placeName(p);
     const title = p.txt ? `<h3 class="pin-txt">${esc(p.txt)}</h3>` : '<h3 class="pin-txt none">Épingle sans texte</h3>';
-    const head = (t) => `<button class="close" aria-label="Fermer">×</button><div class="body noimg"><div class="cat-line"><span class="badge pin-b">${PIN_ICO}</span>${t}</div>`;
+    const head = (t) => `<button class="close" aria-label="Fermer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><div class="body noimg"><div class="cat-line"><span class="badge pin-b">${PIN_ICO}</span>${t}</div>`;
     if (state === 'edit') {
       return head(kind === 'draft' ? 'Nouvelle épingle' : 'Modifier l\'épingle') +
         `<textarea class="pin-text" maxlength="${PIN_MAX}" placeholder="Ton petit texte (facultatif)">${esc(p.txt)}</textarea>

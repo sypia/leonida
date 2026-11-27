@@ -127,11 +127,6 @@
   /* Ligne « Afficher » : épingles et lieux marqués visibles ou non sur la carte */
   .show-row { display: grid; grid-template-columns: auto 1fr 1fr; column-gap: 12px; margin-top: 2px; }
   .show-row .show-lbl { grid-row: span 2; margin-top: 9px; font-size: 12px; color: var(--muted); font-weight: 600; }
-  /* Jeu / Visiter Leonida */
-  .family { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 10px; padding: 3px; border-radius: 9px; background: rgba(0, 0, 0, 0.25); }
-  .family button { height: 28px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
-  .family button:hover { color: var(--text); }
-  .family button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
   /* Tri par prix */
   .cat .price-btn { flex: none; margin-left: 4px; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; color: #7ee2a8; border: 1px solid rgba(126, 226, 168, 0.45); cursor: pointer; }
   .cat .price-btn:hover { background: rgba(126, 226, 168, 0.15); }
@@ -337,10 +332,6 @@
       <label class="opt"><input type="checkbox" data-show="done"> Visités</label>
     </div>
     <div id="tools-all">
-      <div class="family" id="family" role="group" aria-label="Type de lieux">
-        <button data-fam="jeu" title="Objets à trouver, braquages, cascades, courses…">Jeu</button>
-        <button data-fam="visite" title="Restos, bars, boutiques, transports, lieux à voir…">Visiter Leonida</button>
-      </div>
       <div class="side-tools">
         <input id="cat-search" type="search" placeholder="Rechercher un lieu, une catégorie…" autocomplete="off" spellcheck="false">
       </div>
@@ -383,7 +374,6 @@
 <script src="lib/icones.js"></script>
 <script src="donnees/regions.js"></script>
 <script src="donnees/eaux.js"></script>
-<script src="donnees/familles.js"></script>
 <script src="donnees/traduction_fr.js"></script>
 <script src="donnees/lieux_fr.js"></script>
 <script>
@@ -776,13 +766,6 @@
   } catch (e) {}
   const saveShow = () => { try { localStorage.setItem(SHOW_KEY, JSON.stringify(show)); } catch (e) {} };
   const hiddenByMarks = (id) => { const m = markOf(id); return (m.fav && !show.fav) || (m.st === 'todo' && !show.todo) || (m.st === 'done' && !show.done); };
-
-  // Deux familles de lieux : « Jeu » et « Visiter Leonida » (certaines catégories sont dans les deux)
-  const FAM_KEY = 'leonida.famille.v1';
-  let family = 'jeu';
-  try { if (localStorage.getItem(FAM_KEY) === 'visite') family = 'visite'; } catch (e) {}
-  const famOf = (c) => (window.FAMILLE_CAT || {})[c.en] || 'jeu';
-  const inFamily = (c) => { const f = famOf(c); return f === 'both' || f === family; };
   // Catégories dont les fiches donnent un prix de revente (« Sell Value »)
   const PRICE_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
 
@@ -790,7 +773,7 @@
   function refreshPoints() {
     pointSource.clear(true);
     let list;
-    if (mode === 'all') list = allFeatures.filter(f => { const l = f.get('loc'); return enabled.has(l.c) && inFamily(catById[l.c]) && !hiddenByMarks(l.id); });
+    if (mode === 'all') list = allFeatures.filter(f => { const l = f.get('loc'); return enabled.has(l.c) && !hiddenByMarks(l.id); });
     else list = allFeatures.filter(f => hasMark(f.get('loc').id, mode));
     pointSource.addFeatures(list);
     updateCounts();
@@ -986,7 +969,7 @@
     const html = [];
     for (const g of groups) {
       const col = groupColor[g.id];
-      const cats = g.cats.map(id => catById[id]).filter(c => c && inFamily(c)).sort((a, b) => a.order - b.order);
+      const cats = g.cats.map(id => catById[id]).filter(Boolean).sort((a, b) => a.order - b.order);
       if (!cats.length) continue;
       html.push(`<div class="grp" data-g="${g.id}">
         <div class="grp-head"><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
@@ -1012,11 +995,7 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all') {
-      const famCats = DATA.categories.filter(inFamily);
-      const famPts = famCats.reduce((n, c) => n + (countByCat[c.id] || 0), 0);
-      countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${famPts.toLocaleString('fr-CH')} · ${famCats.filter(c => enabled.has(c.id)).length} catégories sur ${famCats.length}`;
-    }
+    if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
     for (const id in marks) { const m = marks[id]; if (m.fav) n.fav++; if (m.st) n[m.st]++; }
@@ -1028,7 +1007,7 @@
     if (tog) {
       e.stopPropagation();
       const g = groups.find(x => x.id === +tog.dataset.tog);
-      const ids = g.cats.filter(id => catById[id] && inFamily(catById[id]));
+      const ids = g.cats;
       const allOn = ids.every(id => enabled.has(id));
       ids.forEach(id => allOn ? enabled.delete(id) : enabled.add(id));
       saveEnabled(); syncChecks(); refreshPoints(); return;
@@ -1044,8 +1023,8 @@
       saveEnabled(); syncChecks(); refreshPoints();
     }
   });
-  document.getElementById('all-on').onclick = () => { DATA.categories.filter(inFamily).forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
-  document.getElementById('all-off').onclick = () => { DATA.categories.filter(inFamily).forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
+  document.getElementById('all-on').onclick = () => { DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
+  document.getElementById('all-off').onclick = () => { DATA.categories.forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
   const foldBtn = document.getElementById('fold-all');
   foldBtn.onclick = () => {
     const grps = listEl.querySelectorAll('.grp');
@@ -1426,9 +1405,7 @@
   }
   // Aller à un lieu : centre la carte, zoome si besoin et ouvre la fiche.
   // Si sa catégorie était masquée, on la ré-affiche pour que le point soit visible.
-  // --- Jeu / Visiter Leonida ---
-  const famEl = document.getElementById('family');
-  function syncFamilyBtns() { famEl.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.fam === family)); }
+  // Liste des catégories reconstruite (après le tri par prix)
   function rebuildCategoryList() {
     const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
     buildPanel();
@@ -1436,17 +1413,6 @@
     folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
   }
-  function setFamily(fam) {
-    if (fam === family) return;
-    family = fam;
-    try { localStorage.setItem(FAM_KEY, family); } catch (e) {}
-    syncFamilyBtns();
-    rebuildCategoryList();
-    if (popupFeature && !inFamily(catById[popupFeature.get('loc').c])) closePopup();
-    refreshPoints();
-  }
-  famEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-fam]'); if (b) setFamily(b.dataset.fam); });
-  syncFamilyBtns();
 
   // --- Véhicules triés par prix de revente ---
   const priceOf = (l) => { const m = (l.dEn || '').match(/\*\*Sell Value:?\*\*:?\s*\$?([\d,]+)/); return m ? +m[1].replace(/,/g, '') : null; };
@@ -1488,7 +1454,6 @@
   function goToFeature(f) {
     if (!f) return;
     const l = f.get('loc');
-    if (mode === 'all' && !inFamily(catById[l.c])) setFamily(famOf(catById[l.c]) === 'visite' ? 'visite' : 'jeu');
     if (mode === 'all' && !enabled.has(l.c)) { enabled.add(l.c); saveEnabled(); syncChecks(); refreshPoints(); }
     if (window.innerWidth <= 600) setSide(false);   // sur téléphone, on libère la carte
     targetRes = null;

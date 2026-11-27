@@ -31,12 +31,14 @@
   }
   /* --- Panneau latéral des catégories --- */
   .side {
-    top: 14px; left: 14px; bottom: 14px; width: 290px;
+    left: 14px; bottom: 70px; top: 14px; width: 290px;
     display: flex; flex-direction: column; overflow: hidden;
     user-select: none; -webkit-user-select: none;
-    transition: transform 0.25s ease;
+    transform-origin: bottom left;
+    transition: transform 0.25s ease, opacity 0.2s ease;
   }
-  .side.closed { transform: translateX(calc(-100% - 14px)); }
+  /* Fermé : le panneau redescend sous le bouton et disparaît */
+  .side.closed { transform: translateY(calc(100% + 80px)); opacity: 0; pointer-events: none; }
   .side-head { padding: 12px 14px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
   .side-head strong { font-size: 15px; letter-spacing: 0.02em; }
   .side-head .sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
@@ -130,12 +132,12 @@
   .popup .marks button.on[data-mark="done"] { background: rgba(126, 226, 168, 0.2); border-color: #7ee2a8; color: #7ee2a8; }
 
   .side-toggle {
-    top: 14px; left: 318px; width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
-    transition: left 0.25s ease;
+    left: 14px; bottom: 14px; height: 44px; padding: 0 16px 0 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; border-radius: 22px;
   }
-  .side-toggle svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; transition: transform 0.25s; }
-  body.side-closed .side-toggle { left: 14px; }
-  body.side-closed .side-toggle svg { transform: rotate(180deg); }
+  .side-toggle:hover { background: var(--panel-hover); }
+  .side-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.25s; transform: rotate(180deg); }
+  body.side-closed .side-toggle svg { transform: none; }
 
   /* --- Fiche d'un point --- */
   .popup {
@@ -180,7 +182,7 @@
   .controls .sep { height: 8px; background: rgba(0, 0, 0, 0.25); }
 
   .status {
-    left: 318px; bottom: 14px; padding: 6px 10px; transition: left 0.25s ease;
+    right: 14px; bottom: 14px; padding: 6px 10px;
     font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11px;
   }
   .status b { color: var(--text); font-weight: 600; }
@@ -193,21 +195,19 @@
   .ol-attribution a { color: #cfe3ee !important; }
   .ol-attribution button { display: none !important; }
 
-  body.side-closed .status { left: 14px; }
 
   @media (max-width: 600px) {
     .status { display: none; }
     .controls { bottom: 28px; }
-    .side { width: calc(100vw - 70px); }
-    .side-toggle { left: calc(100vw - 48px); }
+    .side { width: calc(100vw - 28px); }
     .popup { width: min(300px, 86vw); }
   }
 </style>
 </head>
-<body>
+<body class="side-closed">
 <div id="map" tabindex="0"></div>
 
-<div class="panel side" id="side">
+<div class="panel side closed" id="side">
   <div class="side-head">
     <strong>Leonida</strong>
     <div class="sub">Grand Theft Auto VI</div>
@@ -242,8 +242,8 @@
   <div class="side-list hidden" id="marks-list"></div>
   <div class="side-foot">Fond de carte : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (CC BY 4.0) · Points : Map Genie · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
 </div>
-<div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau">
-  <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+<div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
+  <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><span>Leonida</span>
 </div>
 
 <div id="popup" class="popup hidden"></div>
@@ -736,10 +736,16 @@
       if (q) g.classList.remove('collapsed');
     });
   });
-  document.getElementById('side-toggle').onclick = () => {
-    const closed = document.getElementById('side').classList.toggle('closed');
-    document.body.classList.toggle('side-closed', closed);
-  };
+  // Bouton du panneau (en bas à gauche) : ouvre / ferme le tiroir
+  const toggleEl = document.getElementById('side-toggle');
+  function setSide(open) {
+    document.getElementById('side').classList.toggle('closed', !open);
+    document.body.classList.toggle('side-closed', !open);
+    toggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  const sideOpen = () => !document.body.classList.contains('side-closed');
+  toggleEl.onclick = () => setSide(!sideOpen());
+  toggleEl.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSide(!sideOpen()); } };
 
   // --- Fiche d'un point ---
   const popupEl = document.getElementById('popup');
@@ -872,7 +878,7 @@
       // Bulle : on zoome sur son contenu
       const ext = ol.extent.boundingExtent(fs.map(f => f.getGeometry().getCoordinates()));
       targetRes = null;
-      view.fit(ext, { padding: [120, 120, 120, 420], duration: 450, maxZoom: view.getZoomForResolution(resForZoom(CLUSTER_OFF_ZOOM + 0.6)) });
+      view.fit(ext, { padding: [120, 120, 120, sideOpen() ? 420 : 120], duration: 450, maxZoom: view.getZoomForResolution(resForZoom(CLUSTER_OFF_ZOOM + 0.6)) });
     } else {
       openPopup(fs[0]);
     }

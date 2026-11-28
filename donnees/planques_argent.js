@@ -87,6 +87,12 @@
   D.locations = D.locations.filter(l => l.id !== 970147240);   // le point Scoop isolé, à environ 55 m (écart de recalage)
   const watchMp = at(1099424);
   if (watchMp) watchMp.d = (watchMp.d || '') + "\n**Tips:** C'est un conteneur Scoop : il s'ouvre avec l'outil de découpe (Cut-Off Tool), débloqué au chapitre 3. Environ 10 000 $ à prendre dans le même conteneur (voir la planque du conteneur de Millport).";
+  // Magazine Drive Shaft 1 : dans un conteneur jaune verrouillé, qui est le conteneur Scoop voisin (MapMaster, à environ 24 m)
+  const mag = at(1091833);
+  if (mag) {
+    mag.d = (mag.d || '') + "\n**Tips:** C'est un conteneur Scoop : il s'ouvre avec l'outil de découpe (Cut-Off Tool), débloqué au chapitre 3.\n_Source : MapMaster (position du conteneur Scoop, fusionné ici)_";
+    D.locations = D.locations.filter(l => l.id !== 970146252);
+  }
   // « Billet doré » de la Sahara Arena (l'aréna de basket de Vice City)
   add(960001007, 1091643, 'Sahara Arena Golden Bill', [
     '**Take Value:** $100,000', NO, APPROX,

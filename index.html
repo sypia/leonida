@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128181419">
+<meta name="leonida-version" content="20261128181758">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128181419">
+<link rel="stylesheet" href="lib/ol.css?v=20261128181758">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -32,9 +32,13 @@
   #map.dragging { cursor: grabbing; }
   /* App ajoutée à l'écran d'accueil (iPhone) : iOS laisse parfois une bande vide sous la page, au niveau de la barre d'accueil.
      On étire la carte et le panneau jusqu'au vrai bas de l'écran (hauteur mesurée en JS : --app-h, écart : --app-gap). */
-  html.standalone #map { position: fixed; top: 0; bottom: auto; height: var(--app-h, 100%); }
-  html.standalone .side { position: fixed; bottom: auto; height: calc(var(--app-h, 100%) - env(safe-area-inset-top)); }
-  html.standalone .popup.sheet { bottom: calc(-1 * var(--app-gap, 0px)); }
+  /* Les éléments « fixes » restent coupés à la hauteur donnée par iOS : c'est la page entière qu'on agrandit,
+     et tout ce qui était placé sur l'écran se place maintenant sur la page (body en position relative). */
+  html.standalone, html.standalone body { height: var(--app-h, 100%); }
+  html.standalone body { position: relative; }
+  html.standalone, html.standalone body { overflow: clip; }   /* la page plus haute que la fenêtre ne doit jamais défiler */
+  html.standalone #map { height: var(--app-h, 100%); bottom: auto; }
+  html.standalone .popup.sheet { position: absolute; }
 
   .panel {
     position: absolute; z-index: 10;
@@ -454,7 +458,7 @@
       background: rgba(16, 24, 31, 0.97);
       padding-bottom: env(safe-area-inset-bottom);
     }
-    .side-toggle { top: auto; left: auto; right: 14px; bottom: calc(14px + max(0px, env(safe-area-inset-bottom) - var(--app-gap, 0px))); }
+    .side-toggle { top: auto; left: auto; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
     body:not(.side-closed) .side-toggle { background: var(--panel); }
     .side-toggle svg { transform: rotate(180deg); }
     body.side-closed .side-toggle svg { transform: none; }
@@ -462,7 +466,7 @@
     .side-head { padding-left: 14px; }
     .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
     .quick { width: 100%; }
-    .me-btn { bottom: calc(70px + max(0px, env(safe-area-inset-bottom) - var(--app-gap, 0px))); }   /* au-dessus du bouton du menu */
+    .me-btn { bottom: calc(70px + env(safe-area-inset-bottom)); }   /* au-dessus du bouton du menu */
     .side-foot { padding-right: 72px; }   /* laisse la place au bouton flèche, en bas à droite */
     .popup { width: min(300px, 86vw); }
     .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
@@ -563,22 +567,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128181419"></script>
-<script src="donnees/points_mapgenie.js?v=20261128181419"></script>
-<script src="lib/icones.js?v=20261128181419"></script>
-<script src="donnees/points_dexerto.js?v=20261128181419"></script>
-<script src="donnees/points_gtadb.js?v=20261128181419"></script>
-<script src="donnees/points_scoop.js?v=20261128181419"></script>
-<script src="donnees/niadb.js?v=20261128181419"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128181419"></script>
-<script src="donnees/planques_argent.js?v=20261128181419"></script>
-<script src="donnees/doublons.js?v=20261128181419"></script>
-<script src="donnees/corrections.js?v=20261128181419"></script>
-<script src="donnees/organisation.js?v=20261128181419"></script>
-<script src="donnees/regions.js?v=20261128181419"></script>
-<script src="donnees/eaux.js?v=20261128181419"></script>
-<script src="donnees/traduction_fr.js?v=20261128181419"></script>
-<script src="donnees/lieux_fr.js?v=20261128181419"></script>
+<script src="lib/ol.js?v=20261128181758"></script>
+<script src="donnees/points_mapgenie.js?v=20261128181758"></script>
+<script src="lib/icones.js?v=20261128181758"></script>
+<script src="donnees/points_dexerto.js?v=20261128181758"></script>
+<script src="donnees/points_gtadb.js?v=20261128181758"></script>
+<script src="donnees/points_scoop.js?v=20261128181758"></script>
+<script src="donnees/niadb.js?v=20261128181758"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128181758"></script>
+<script src="donnees/planques_argent.js?v=20261128181758"></script>
+<script src="donnees/doublons.js?v=20261128181758"></script>
+<script src="donnees/corrections.js?v=20261128181758"></script>
+<script src="donnees/organisation.js?v=20261128181758"></script>
+<script src="donnees/regions.js?v=20261128181758"></script>
+<script src="donnees/eaux.js?v=20261128181758"></script>
+<script src="donnees/traduction_fr.js?v=20261128181758"></script>
+<script src="donnees/lieux_fr.js?v=20261128181758"></script>
 <script>
 (function () {
   'use strict';
@@ -692,14 +696,18 @@
   if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
     const root = document.documentElement;
     root.classList.add('standalone');
+    let diagShow = null;
     const fit = () => {
       const portrait = window.innerHeight >= window.innerWidth;
       const full = Math.max(window.innerHeight, portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height));
       root.style.setProperty('--app-h', full + 'px');
       root.style.setProperty('--app-gap', Math.max(0, full - window.innerHeight) + 'px');
       map.updateSize();
+      if (diagShow) diagShow();
     };
     fit();
+    // Filet de sécurité : si quelque chose fait quand même défiler la page, on la remet en place
+    window.addEventListener('scroll', () => { if (window.scrollY || window.scrollX) window.scrollTo(0, 0); }, { passive: true });
     // --- DIAGNOSTIC TEMPORAIRE (bande en bas sur iPhone) : fond rose et mesures affichées ; toucher le cadre pour le fermer ---
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
@@ -707,7 +715,7 @@
     root.style.background = '#ff00aa'; document.body.style.background = '#ff00aa';
     const diag = document.createElement('div');
     diag.style.cssText = 'position:fixed;z-index:9999;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;font:12px/1.45 ui-monospace,Menlo,monospace;padding:8px 10px;border-radius:8px;white-space:pre;pointer-events:auto';
-    const show = () => {
+    const show = diagShow = () => {
       const cs = getComputedStyle(probe), vv = window.visualViewport, mr = document.getElementById('map').getBoundingClientRect();
       diag.textContent = 'DIAGNOSTIC (toucher pour fermer)\n' +
         'innerWidth x innerHeight : ' + innerWidth + ' x ' + innerHeight + '\n' +

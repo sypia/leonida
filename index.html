@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128183333">
+<meta name="leonida-version" content="20261128183750">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128183333">
+<link rel="stylesheet" href="lib/ol.css?v=20261128183750">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -569,22 +569,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128183333"></script>
-<script src="donnees/points_mapgenie.js?v=20261128183333"></script>
-<script src="lib/icones.js?v=20261128183333"></script>
-<script src="donnees/points_dexerto.js?v=20261128183333"></script>
-<script src="donnees/points_gtadb.js?v=20261128183333"></script>
-<script src="donnees/points_scoop.js?v=20261128183333"></script>
-<script src="donnees/niadb.js?v=20261128183333"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128183333"></script>
-<script src="donnees/planques_argent.js?v=20261128183333"></script>
-<script src="donnees/doublons.js?v=20261128183333"></script>
-<script src="donnees/corrections.js?v=20261128183333"></script>
-<script src="donnees/organisation.js?v=20261128183333"></script>
-<script src="donnees/regions.js?v=20261128183333"></script>
-<script src="donnees/eaux.js?v=20261128183333"></script>
-<script src="donnees/traduction_fr.js?v=20261128183333"></script>
-<script src="donnees/lieux_fr.js?v=20261128183333"></script>
+<script src="lib/ol.js?v=20261128183750"></script>
+<script src="donnees/points_mapgenie.js?v=20261128183750"></script>
+<script src="lib/icones.js?v=20261128183750"></script>
+<script src="donnees/points_dexerto.js?v=20261128183750"></script>
+<script src="donnees/points_gtadb.js?v=20261128183750"></script>
+<script src="donnees/points_scoop.js?v=20261128183750"></script>
+<script src="donnees/niadb.js?v=20261128183750"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128183750"></script>
+<script src="donnees/planques_argent.js?v=20261128183750"></script>
+<script src="donnees/doublons.js?v=20261128183750"></script>
+<script src="donnees/corrections.js?v=20261128183750"></script>
+<script src="donnees/organisation.js?v=20261128183750"></script>
+<script src="donnees/regions.js?v=20261128183750"></script>
+<script src="donnees/eaux.js?v=20261128183750"></script>
+<script src="donnees/traduction_fr.js?v=20261128183750"></script>
+<script src="donnees/lieux_fr.js?v=20261128183750"></script>
 <script>
 (function () {
   'use strict';
@@ -1984,6 +1984,48 @@
   }
   popupEl.addEventListener('click', onCardClick);
   sheetEl.addEventListener('click', onCardClick);
+  // Téléphone : glisser la fiche vers le bas pour la refermer, comme le menu.
+  // Depuis n'importe où si la fiche est déjà tout en haut ; sinon le glissement fait remonter son contenu.
+  (function () {
+    let y0 = 0, x0 = 0, t0 = 0, dy = 0, state = '';
+    sheetEl.addEventListener('touchstart', (e) => {
+      if (sheetEl.classList.contains('hidden') || e.touches.length !== 1) { state = 'no'; return; }
+      const t = e.touches[0];
+      const inStrip = e.target.closest('.ph-strip');   // la bande de photos défile à l'horizontale : on la laisse faire
+      state = !inStrip && sheetEl.scrollTop <= 0 ? 'wait' : 'no';
+      y0 = t.clientY; x0 = t.clientX; t0 = Date.now(); dy = 0;
+    }, { passive: true });
+    sheetEl.addEventListener('touchmove', (e) => {
+      if (state !== 'wait' && state !== 'drag') return;
+      const t = e.touches[0], ddy = t.clientY - y0, ddx = t.clientX - x0;
+      if (state === 'wait') {
+        if (Math.abs(ddy) < 8 && Math.abs(ddx) < 8) return;
+        if (ddy > 0 && Math.abs(ddy) > Math.abs(ddx) * 1.2) { state = 'drag'; sheetEl.style.transition = 'none'; }
+        else { state = 'no'; return; }
+      }
+      dy = Math.max(0, ddy);
+      sheetEl.style.transform = 'translateY(' + dy + 'px)';
+      e.preventDefault();
+    }, { passive: false });
+    const end = () => {
+      if (state !== 'drag') { state = ''; return; }
+      state = '';
+      const speed = dy / Math.max(1, Date.now() - t0);
+      const close = dy > Math.min(120, sheetEl.offsetHeight * 0.25) || (speed > 0.6 && dy > 30);
+      sheetEl.style.transition = 'transform 0.22s ease';
+      requestAnimationFrame(() => {
+        if (close) {
+          sheetEl.style.transform = 'translateY(100%)';
+          setTimeout(() => { closePopup(); sheetEl.style.transition = ''; sheetEl.style.transform = ''; }, 230);
+        } else {
+          sheetEl.style.transform = '';
+          setTimeout(() => { sheetEl.style.transition = ''; }, 230);
+        }
+      });
+    };
+    sheetEl.addEventListener('touchend', end);
+    sheetEl.addEventListener('touchcancel', end);
+  })();
 
   function closePopup() {
     const wasOpen = popupFeature !== null;

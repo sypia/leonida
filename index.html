@@ -2,9 +2,15 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<!-- App ajoutée à l'écran d'accueil (iPhone) : plein écran, la carte passe sous l'heure et la batterie -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leonida">
+<meta name="leonida-version" content="20261128180140">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css">
+<link rel="stylesheet" href="lib/ol.css?v=20261128180140">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -442,7 +448,7 @@
       background: rgba(16, 24, 31, 0.97);
       padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
-    .side-toggle { top: auto; left: 14px; bottom: 14px; }
+    .side-toggle { top: auto; left: auto; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
     body:not(.side-closed) .side-toggle { background: var(--panel); }
     .side-toggle svg { transform: rotate(180deg); }
     body.side-closed .side-toggle svg { transform: none; }
@@ -450,8 +456,8 @@
     .side-head { padding-left: 14px; }
     .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
     .quick { width: 100%; }
-    .me-btn { bottom: 14px; }
-    .side-foot { padding-left: 72px; }   /* laisse la place au bouton flèche, qui reste en bas à gauche */
+    .me-btn { bottom: calc(70px + env(safe-area-inset-bottom)); }   /* au-dessus du bouton du menu */
+    .side-foot { padding-right: 72px; }   /* laisse la place au bouton flèche, en bas à droite */
     .popup { width: min(300px, 86vw); }
     .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
     .popup .pin-hint { display: none; }
@@ -551,22 +557,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js"></script>
-<script src="donnees/points_mapgenie.js"></script>
-<script src="lib/icones.js"></script>
-<script src="donnees/points_dexerto.js"></script>
-<script src="donnees/points_gtadb.js"></script>
-<script src="donnees/points_scoop.js"></script>
-<script src="donnees/niadb.js"></script>
-<script src="donnees/niadb_vehicules.js"></script>
-<script src="donnees/planques_argent.js"></script>
-<script src="donnees/doublons.js"></script>
-<script src="donnees/corrections.js"></script>
-<script src="donnees/organisation.js"></script>
-<script src="donnees/regions.js"></script>
-<script src="donnees/eaux.js"></script>
-<script src="donnees/traduction_fr.js"></script>
-<script src="donnees/lieux_fr.js"></script>
+<script src="lib/ol.js?v=20261128180140"></script>
+<script src="donnees/points_mapgenie.js?v=20261128180140"></script>
+<script src="lib/icones.js?v=20261128180140"></script>
+<script src="donnees/points_dexerto.js?v=20261128180140"></script>
+<script src="donnees/points_gtadb.js?v=20261128180140"></script>
+<script src="donnees/points_scoop.js?v=20261128180140"></script>
+<script src="donnees/niadb.js?v=20261128180140"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128180140"></script>
+<script src="donnees/planques_argent.js?v=20261128180140"></script>
+<script src="donnees/doublons.js?v=20261128180140"></script>
+<script src="donnees/corrections.js?v=20261128180140"></script>
+<script src="donnees/organisation.js?v=20261128180140"></script>
+<script src="donnees/regions.js?v=20261128180140"></script>
+<script src="donnees/eaux.js?v=20261128180140"></script>
+<script src="donnees/traduction_fr.js?v=20261128180140"></script>
+<script src="donnees/lieux_fr.js?v=20261128180140"></script>
 <script>
 (function () {
   'use strict';
@@ -676,6 +682,25 @@
     moveTolerance: 2
   });
   window.__map = map;
+  // --- Mise à jour automatique : au retour dans l'app (ou l'onglet), si une nouvelle version est en ligne, on recharge ---
+  (function () {
+    // Version de cette page (écrite à chaque publication) ; « 0 » en local : on prend celle du serveur comme référence
+    const meta = document.querySelector('meta[name="leonida-version"]');
+    let cur = meta && meta.content !== '0' ? meta.content : null;
+    const check = async () => {
+      try {
+        const r = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) return;
+        const v = (await r.text()).trim();
+        if (!/^\d+$/.test(v)) return;
+        if (cur === null) { cur = v; return; }
+        if (v !== cur) location.replace(location.pathname + '?v=' + v + location.hash);   // nouvelle adresse : rien de l'ancienne version en cache
+      } catch (e) {}
+    };
+    check();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) check(); });
+  })();
   window.__goto = (id) => goToFeature(byId[id]);   // tests
 
   // Vue d'ensemble et zoom minimum (on ne peut pas trop dézoomer)
@@ -1373,11 +1398,12 @@
       const ids = g.cats.filter(id => catById[id]);
       const solo = enabled.size === ids.length && ids.every(id => enabled.has(id));
       closeSub();
+      // Pas de sélection gardée en mémoire pour les groupes : second clic = le groupe est décoché, rien d'autre ne revient
+      soloPrev = null;
       if (solo) {
-        enabled = soloPrev ? new Set(soloPrev) : new Set(); soloPrev = null;
+        ids.forEach(id => enabled.delete(id));
         grp.classList.add('collapsed'); syncFoldBtn();
       } else {
-        if (!(soloPrev && (enabled.size === 1 || isGroupSolo()))) soloPrev = new Set(enabled);
         enabled = new Set(ids);
         grp.classList.remove('collapsed'); syncFoldBtn();
       }
@@ -1389,6 +1415,7 @@
       if (e.target.closest('.box')) {
         // La case : ajoute ou retire cette catégorie, sans toucher aux autres
         enabled.has(id) ? enabled.delete(id) : enabled.add(id);
+        soloPrev = null;
       } else if (enabled.size === 1 && enabled.has(id) && soloPrev) {
         // Deuxième clic sur le nom de la catégorie déjà seule : retour à la sélection d'avant
         enabled = new Set(soloPrev); soloPrev = null; closeSub();
@@ -1396,7 +1423,7 @@
         // Le nom : n'affiche que cette catégorie (la sélection d'avant reste en mémoire pour « Revenir »)
         // et déplie la liste de ses lieux juste en dessous
         // D'une catégorie seule à une autre : on garde la sélection de départ pour « Revenir »
-        if (!((enabled.size === 1 || isGroupSolo()) && (enabled.has(id) || soloPrev))) soloPrev = new Set(enabled);
+        if (!(enabled.size === 1 && soloPrev)) soloPrev = new Set(enabled);
         enabled = new Set([id]);
         openSub(id);
       }
@@ -1472,7 +1499,7 @@
     if (it) goToFeature(byId[it.dataset.subId]);
   });
   document.getElementById('all-on').onclick = () => { soloPrev = null; DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
-  document.getElementById('all-off').onclick = () => { DATA.categories.forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
+  document.getElementById('all-off').onclick = () => { soloPrev = null; DATA.categories.forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
   const foldBtn = document.getElementById('fold-all');
   foldBtn.onclick = () => {
     const grps = listEl.querySelectorAll('.grp');
@@ -2324,7 +2351,7 @@
   function goToFeature(f) {
     if (!f) return;
     const l = f.get('loc');
-    if (mode === 'all' && !cashIds && !enabled.has(l.c)) { enabled.add(l.c); saveEnabled(); syncChecks(); refreshPoints(); }
+    if (mode === 'all' && !cashIds && !enabled.has(l.c)) { enabled.add(l.c); soloPrev = null; saveEnabled(); syncChecks(); refreshPoints(); }
     if (window.innerWidth <= 600) setSide(false);   // sur téléphone, on libère la carte
     targetRes = null;
     const res = Math.min(view.getResolution(), resForZoom(4.6));

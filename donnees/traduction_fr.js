@@ -20,7 +20,8 @@ window.TRAD_FR = (function () {
     'Activities': 'Activités',
     'Stunts': 'Cascades',
     'Racing': 'Courses',
-    'Illegal Operations': 'Opérations illégales'
+    'Illegal Operations': 'Opérations illégales',
+    'Story & Secrets': 'Histoire et secrets'
   };
 
   const categories = {
@@ -145,7 +146,16 @@ window.TRAD_FR = (function () {
     'Watch': 'Montre',
     "Wyman's Untowables": 'Inremorquables de Wyman',
     'Meditation Spot': 'Lieu de méditation',
-    'Kitty Litter Lab': 'Labo Kitty Litter'
+    'Kitty Litter Lab': 'Labo Kitty Litter',
+    // Catégories reprises de la carte Dexerto
+    'Story Mission': 'Mission principale',
+    'Strangers & Freaks': 'Inconnus et détraqués',
+    'Easter Egg': 'Easter egg',
+    'Car Theft Request': 'Vol de voiture sur commande',
+    'Safehouse': 'Planque',
+    'Hunting': 'Chasse',
+    'Airfield': 'Aérodrome',
+    'Marina': 'Marina'
   };
 
   // Zones : on ne traduit que les mots génériques, les noms restent tels quels

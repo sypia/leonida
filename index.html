@@ -890,24 +890,78 @@
     if (r.n === 1) return 'comte';
     if (GRANDES_VILLES.has(r.en)) return 'grande';
     if (VILLES.has(r.en)) return 'ville';
-    return 'quartier';
+    return r.n === 2 ? 'zone' : 'quartier';
   }
+  // Chaque type de nom : police, taille de base au zoom zb, grossissement avec le zoom,
+  // et règles d'apparition (le nom doit tenir dans sa zone, et s'efface quand la zone dépasse l'écran).
+  //   fit : largeur de la zone / largeur du texte minimale pour s'afficher
+  //   big : s'efface quand la zone fait plus de « big » fois la largeur de l'écran
+  const GEORGIA = 'Georgia, "Times New Roman", serif';
+  //   minZ / maxZ : zooms entre lesquels le nom peut apparaître ; prio : priorité quand deux noms se chevauchent
   const LABEL_KINDS = {
-    comte:    { font: '400 26px ' + OSWALD,      upper: true },   // étroit
-    grande:   { font: '600 17px ' + MONTSERRAT,  upper: true },   // large, comme VICE CITY sur l'affiche
-    ville:    { font: '600 13.5px ' + MONTSERRAT, upper: false },
-    quartier: { font: '400 13px ' + OSWALD,      upper: true },
-    // Étendues d'eau : italique à empattements, bleu-gris, comme sur l'affiche
-    eau1:     { font: 'italic 400 20px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.78)', noStroke: true },
-    eau2:     { font: 'italic 400 14px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.75)', noStroke: true },
-    eau3:     { font: 'italic 400 13px Georgia, "Times New Roman", serif', upper: false, color: 'rgba(22, 62, 80, 0.75)', noStroke: true }
+    comte:    { w: 400, fam: OSWALD,     base: 20, zb: 0.3, upper: true,  wrap: 18, fit: 0.9, big: 0.8, maxZ: 1.3, prio: 50 },   // étroit
+    grande:   { w: 600, fam: MONTSERRAT, base: 15, zb: 1.2, upper: true,  wrap: 14, fit: 0.6, big: 1.6, prio: 40 },              // large, comme VICE CITY
+    ville:    { w: 600, fam: MONTSERRAT, base: 13, zb: 1.2, upper: false, wrap: 14, fit: 0.8, big: 1.6, prio: 30 },
+    zone:     { w: 400, fam: OSWALD,     base: 11, zb: 2.0, upper: true,  wrap: 14, fit: 0.9, big: 1.6, minZ: 0.7, prio: 20 },   // îles, parcs, sous-comtés
+    quartier: { w: 400, fam: OSWALD,     base: 11, zb: 2.0, upper: true,  wrap: 14, fit: 0.9, big: 1.6, minZ: 1.6, prio: 10 },
+    // Étendues d'eau : italique à empattements, bleu-gris ; elles doivent tenir dans l'eau
+    eau1:     { w: 400, fam: GEORGIA, italic: true, base: 18, zb: 0.4, wrap: 14, fit: 1.0, big: 3, prio: 45, color: 'rgba(22, 62, 80, 0.78)', noStroke: true },
+    eau2:     { w: 400, fam: GEORGIA, italic: true, base: 13, zb: 1.5, wrap: 11, big: 2, prio: 25, color: 'rgba(22, 62, 80, 0.75)', noStroke: true },
+    eau3:     { w: 400, fam: GEORGIA, italic: true, base: 12, zb: 2.0, wrap: 11, big: 2, prio: 25, color: 'rgba(22, 62, 80, 0.75)', noStroke: true }
   };
+  // Largeur des étendues d'eau (px au zoom 6), faute de contour : océan / golfe, baies, lacs et rivières
+  const EAU_W = { 1: 40000, 2: 6500, 3: 3500 };
+  // Taille de la zone de chaque nom (boîte englobante de ses contours)
+  function zoneSize(r) {
+    if (r._w == null) {
+      if (r.eau) { r._w = r.w || EAU_W[r.eau]; r._h = r.h || r._w * 0.6; }
+      else {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        (r.g || []).forEach(poly => (poly[0] || []).forEach(([x, y]) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }));
+        r._w = x1 > x0 ? x1 - x0 : 2000; r._h = y1 > y0 ? y1 - y0 : 2000;
+      }
+    }
+    return r;
+  }
+  // Noms longs sur deux lignes, coupés à l'espace le plus proche du milieu
+  function wrapName(t, max) {
+    if (t.length <= max || t.indexOf(' ') < 0) return t;
+    let best = -1;
+    for (let i = 0; i < t.length; i++) if (t[i] === ' ' && (best < 0 || Math.abs(i - t.length / 2) < Math.abs(best - t.length / 2))) best = i;
+    return t.slice(0, best) + '\n' + t.slice(best + 1);
+  }
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  let measureCache = {};
+  function textBox(text, font, size) {
+    const k = font + '|' + text;
+    if (!measureCache[k]) { measureCtx.font = font; measureCache[k] = Math.max(...text.split('\n').map(l => measureCtx.measureText(l).width)); }
+    return { w: measureCache[k] * size / 100, h: text.split('\n').length * size * 1.15 };
+  }
   const labelStyleCache = {};
-  function labelStyle(r) {
-    const kind = labelKind(r), k = kind + '|' + r.t;
+  function labelStyle(r, z, res, viewW) {
+    const kind = labelKind(r), K = LABEL_KINDS[kind];
+    if ((K.minZ != null && z < K.minZ) || (K.maxZ != null && z > K.maxZ)) return null;
+    zoneSize(r);
+    const W = r._w / res, H = r._h / res;
+    if (W > viewW * K.big) return null;                                  // on est « dans » la zone : le nom s'efface
+    // Le nom grossit avec le zoom (taille de base au zoom zb, de 0,8 à 2 fois)
+    const size = Math.round(K.base * Math.min(2, Math.max(0.8, Math.pow(2, (z - K.zb) * 0.55))) * 2) / 2;
+    const font100 = (K.italic ? 'italic ' : '') + K.w + ' 100px ' + K.fam;
+    const name = K.upper ? r.t.toUpperCase() : r.t;
+    let text;
+    if (r.eau && r.w) {
+      // Eau : sur une ligne si ça tient, sinon sur deux, sinon pas encore (le nom déborderait sur la terre)
+      text = [name, wrapName(name, 1)].find(t => { const b = textBox(t, font100, size); return b.w <= W * 1.25 && b.h <= H * 1.25; });
+      if (!text) return null;
+    } else {
+      text = wrapName(name, K.wrap);
+      const box = textBox(text, font100, size);
+      if (W < box.w * K.fit || H < box.h * 0.7) return null;             // le nom ne tient pas encore dans sa zone
+    }
+    const k = kind + '|' + text + '|' + size;
     if (!labelStyleCache[k]) {
-      const K = LABEL_KINDS[kind], text = K.upper ? r.t.toUpperCase() : r.t;
-      labelStyleCache[k] = new ol.style.Style({ text: new ol.style.Text({ text, font: K.font, overflow: true, padding: [2, 4, 2, 4],
+      labelStyleCache[k] = new ol.style.Style({ zIndex: K.prio, text: new ol.style.Text({
+        text, font: (K.italic ? 'italic ' : '') + K.w + ' ' + size + 'px ' + K.fam, overflow: true, padding: [2, 4, 2, 4],
         fill: new ol.style.Fill({ color: K.color || '#ffffff' }),
         stroke: K.noStroke ? undefined : new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 1.6 }) }) });   // mini bord gris
     }
@@ -916,16 +970,8 @@
   const labelLayer = new ol.layer.Vector({
     source: labelSource, declutter: true, updateWhileAnimating: true, updateWhileInteracting: true,
     style: (f, res) => {
-      const z = zoomForRes(res), n = f.get('lvl');
-      const r = f.get('reg'), kind = labelKind(r);
-      if (kind === 'eau1') return z > 3.6 ? null : labelStyle(r);
-      if (kind === 'eau2') return (z < 1.1 || z > 5.6) ? null : labelStyle(r);
-      if (kind === 'eau3') return (z < 2.2) ? null : labelStyle(r);
-      if (kind === 'comte' && z > 1.9) return null;   // les comtés s'effacent vite quand on zoome
-      if ((kind === 'grande' || kind === 'ville') && (z < 1.0 || z > 5.2)) return null;
-      if (kind === 'quartier' && n === 2 && (z < 1.6 || z > 5.2)) return null;
-      if (n >= 3 && kind !== 'grande' && z < 3.3) return null;
-      return labelStyle(r);
+      const size = map.getSize();
+      return labelStyle(f.get('reg'), zoomForRes(res), res, size ? size[0] : 1200);
     }
   });
   // Frontières juste au-dessus du fond de carte.
@@ -933,7 +979,7 @@
 
   if (document.fonts && document.fonts.load) {
     Promise.all(['400 26px Oswald', '600 14px Montserrat'].map(f => document.fonts.load(f)))
-      .then(() => { labelLayer.changed(); }).catch(() => {});
+      .then(() => { measureCache = {}; labelLayer.changed(); }).catch(() => {});
   }
   // Zone mise en surbrillance après une recherche de zone
   const hlSource = new ol.source.Vector();

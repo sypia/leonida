@@ -21,7 +21,8 @@ window.TRAD_FR = (function () {
     'Stunts': 'Cascades',
     'Racing': 'Courses',
     'Illegal Operations': 'Opérations illégales',
-    'Story & Secrets': 'Histoire et secrets'
+    'Story & Secrets': 'Histoire et secrets',
+    'Landmarks & Buildings': 'Lieux et bâtiments'
   };
 
   const categories = {
@@ -155,7 +156,16 @@ window.TRAD_FR = (function () {
     'Safehouse': 'Planque',
     'Hunting': 'Chasse',
     'Airfield': 'Aérodrome',
-    'Marina': 'Marina'
+    'Marina': 'Marina',
+    // Catégories reprises de gtadb.org
+    'Hotel': 'Hôtel',
+    'Restaurant & Bar': 'Restaurant et bar',
+    'Shop': 'Magasin',
+    'Transport': 'Transport',
+    'Public Building': 'Bâtiment public',
+    'Leisure & Landmark': 'Loisirs et monuments',
+    'Nature': 'Nature',
+    'Building': 'Bâtiment'
   };
 
   // Zones : on ne traduit que les mots génériques, les noms restent tels quels
@@ -574,6 +584,7 @@ window.TRAD_FR = (function () {
 
   // --- Descriptions ---
   const rubriques = {
+    'Address': 'Adresse', 'Inspired by': 'Inspiré de',
     'Location': 'Emplacement', 'Legend': 'Emplacement', 'Security': 'Sécurité', 'Route': 'Lignes', 'Type': 'Type',
     'Features': 'Équipements', 'Take Value': 'Butin', 'Challenge': 'Défi', 'Access': 'Accès', 'Tracker': 'Traceur',
     'Era': 'Époque', 'Body Condition': 'État de la carrosserie', 'Seats': 'Places', 'Specialist': 'Spécialiste',
@@ -733,6 +744,7 @@ window.TRAD_FR = (function () {
 
   // Lignes libres (hors rubriques), traduites telles quelles
   const lignes = {
+    'Interior accessible': 'Intérieur accessible',
     '_Acts as an introduction to meditation spots if previously missed during Chapter 1 at the_ [Learn to Meditate Together Spot](https://mapgenie.io/grand-theft-auto-6/maps/leonida?locationIds=1097659)':
       "_Sert d'introduction aux lieux de méditation si on l'a manquée pendant le chapitre 1 au lieu_ [Apprendre à méditer ensemble](https://mapgenie.io/grand-theft-auto-6/maps/leonida?locationIds=1097659)",
     '_Available after completing all other meditation spots_': '_Disponible après avoir terminé tous les autres lieux de méditation_',

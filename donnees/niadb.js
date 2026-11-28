@@ -63,7 +63,7 @@
   D.locations.forEach(l => {
     if (GAR[l.t] && l.c === 29062) {
       const [full, perk] = GAR[l.t];
-      l.d = (l.d || '').replace(/\*\*Price:\*\*\s*\$?[\d,]+/, '**Price:** ' + full + '\n**Price with Savings Perk:** ' + perk);
+      l.d = (l.d || '').replace(/\*\*Price:\*\*\s*\$?[\d,]+/, () => '**Price:** ' + full + '\n**Price with Savings Perk:** ' + perk);
       add(l, ["_En vente dans l'appli Vice City Real Estate. Le bonus d'épargne familiale (100 000 $) donne 20 % de réduction._", SRC_GAR]);
     }
     if (FREE[l.t] && (l.c === 29062 || l.c === 29063)) add(l, ['**Chapter:** ' + FREE[l.t][0], '_' + FREE[l.t][1] + '_', SRC_GAR]);
@@ -89,7 +89,7 @@
     const o = OPS_INFO[l.t];
     if (!o || !OPS.has(l.c)) return;
     let d = l.d || '';
-    if (o[0]) d = /\*\*Security:\*\*/.test(d) ? d.replace(/(\*\*Security:\*\*[^\n]*)/, '$1\n**Take Value:** ' + o[0]) : '**Take Value:** ' + o[0] + (d ? '\n' + d : '');
+    if (o[0]) d = /\*\*Security:\*\*/.test(d) ? d.replace(/(\*\*Security:\*\*[^\n]*)/, (m) => m + '\n**Take Value:** ' + o[0]) : '**Take Value:** ' + o[0] + (d ? '\n' + d : '');
     if (o[1]) d = '**Chapter:** ' + o[1] + (d ? '\n' + d : '');
     l.d = d.replace(/\s+$/, '') + '\n' + SRC_ROB;
   });

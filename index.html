@@ -178,6 +178,8 @@
   .price-filter { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px 6px; }
   .price-filter button { border: 1px solid rgba(255, 255, 255, 0.14); background: transparent; color: var(--muted); border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 11px; cursor: pointer; }
   .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
+  .price-filter button.ca { margin-left: auto; }
+  .price-filter button.ca.sel { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); background: rgba(126, 226, 168, 0.12); }
   .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
   .cat-res .see { margin-left: auto; display: inline-flex; align-items: center; height: 26px; font-size: 11px; }
   .popup .perf { margin: 10px 0 4px; padding: 8px 10px; border-radius: 9px; background: rgba(0, 0, 0, 0.22); }
@@ -194,6 +196,14 @@
   .popup details.more summary::before { content: '▸ '; }
   .popup details.more[open] summary::before { content: '▾ '; }
   .popup .desc-foot { margin-top: 8px; font-size: 11px; color: var(--muted); }
+  .popup .rels { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 2px; }
+  .rel { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 700; line-height: 17px; border: 1px solid; white-space: nowrap; }
+  .rel-ok { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); background: rgba(126, 226, 168, 0.1); }
+  .rel-no { color: #f2b45a; border-color: rgba(242, 180, 90, 0.5); background: rgba(242, 180, 90, 0.1); }
+  .rel-div { color: #f08a7e; border-color: rgba(240, 138, 126, 0.5); background: rgba(240, 138, 126, 0.1); }
+  .rel-acc { color: var(--muted); border-color: rgba(255, 255, 255, 0.2); font-weight: 600; }
+  .popup details.aide summary { color: #f2c46d; }
+  .mk .rel { margin-left: 5px; padding: 0 5px; font-size: 9.5px; line-height: 14px; vertical-align: 1px; }
   .mk .price.none { color: var(--muted); font-weight: 500; }
   /* Liste « Je veux du cash » */
   .cash-btn {
@@ -487,7 +497,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques d'argent : guides de joueurs (VicePulse et autres) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> (quelques performances : <a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a>) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
+  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques d'argent et autres estimations de butin : guides de joueurs (<a href="https://vicepulse.org/gta-6/money/hidden-cash" target="_blank" rel="noopener">VicePulse</a>, <a href="https://bloxodes.com/wiki/gta-6/robberies" target="_blank" rel="noopener">Bloxodes</a>, GTA BOOM, Beebom et autres) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> (quelques performances : <a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a>) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
@@ -626,6 +636,7 @@
     moveTolerance: 2
   });
   window.__map = map;
+  window.__goto = (id) => goToFeature(byId[id]);   // tests
 
   // Vue d'ensemble et zoom minimum (on ne peut pas trop dézoomer)
   function fitAll(duration) {
@@ -1492,7 +1503,7 @@
   const ESSENTIEL = new Set(['location', 'legend', 'emplacement', 'take value', 'butin', 'sell value', 'valeur de revente',
     'security', 'securite', 'access', 'acces', 'tracker', 'traceur', 'max payout', 'gain maximum', 'buy in', "droit d'entree",
     'reward', 'recompense', 'price', 'prix', 'cost', 'cout', 'membership cost', "prix de l'abonnement", 'inspired by', 'inspire de',
-    'chapter', 'chapitre', 'hair colours', 'couleurs de cheveux', 'jason hairstyles', 'coupes pour jason', 'lucia hairstyles', 'coupes pour lucia', 'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
+    'chapter', 'chapitre', 'hair colours', 'couleurs de cheveux', 'jason hairstyles', 'coupes pour jason', 'lucia hairstyles', 'coupes pour lucia', 'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors', 'other estimate', 'autre estimation']);
   // Performances d'un véhicule (NiaDB) : barres sur 10
   function perfHtml(l) {
     const p = (window.PERF_VEHICULES || {})[l.id];
@@ -1507,19 +1518,37 @@
       `<div class="perf-note">${road != null ? 'Note route ' + road + ' · tout-terrain ' + off + '. ' : ''}${base ? 'Chiffres du modèle de base (' + esc(name) + '), cette version peut différer. ' : ''}` +
       `Source : ${source}</div></div>`;
   }
-  function descHtml(d) {
-    const top = [], more = [], foot = [];
+  // Fiabilité d'un montant (planques, estimations d'autres sources) et précision de l'emplacement : badges en haut de fiche
+  const REL_KEYS = new Set(['reliability', 'fiabilite']), ACC_KEYS = new Set(['location accuracy', "precision de l'emplacement"]);
+  const REL_CLS = { 'attested': 'ok', 'atteste': 'ok', 'not attested': 'no', 'non atteste': 'no', 'sources disagree': 'div', 'sources divergentes': 'div' };
+  const REL_SHORT = { ok: 'Attesté', no: 'Non attesté', div: 'Divergent' };
+  const REL_TIP = { ok: 'Plusieurs sources indépendantes concordent', no: "Une seule source, à vérifier en jeu", div: 'Les sources donnent des montants très différents' };
+  // Astuces et codes : derrière le bouton « Aide », fermé par défaut
+  const ACC_TXT = { 'Approximate': 'Approximate location', 'Approximative': 'Emplacement approximatif' };
+  const AIDE_KEYS = new Set(['tips', 'astuces', 'codes']);
+  // Missions, inconnus et détraqués, easter eggs : le texte libre et les liens vers les guides sont des indices
+  const AIDE_CATS = new Set([990001, 990002, 990003]);
+  function descHtml(d, l) {
+    const top = [], more = [], foot = [], aide = [], badges = [];
+    const hintCat = l && AIDE_CATS.has(l.c);
     let cur = top;
     d.split(/\r?\n/).forEach(line => {
       const s = line.trim();
-      if (/^_(Source|Photos?)\b/.test(s)) { foot.push(line); return; }   // crédit et légende des photos : toujours visibles, en bas
-      const m = s.match(/^\*\*([^*]+?)\s*:?\s*\*\*/);
-      if (m) cur = ESSENTIEL.has(norm(m[1]).replace(/\s*:$/, '').trim()) ? top : more;
+      if (/^_(Source|Photos?|Vidéo de|Même montant)\b/.test(s)) { foot.push(line); return; }   // crédit et légende des photos : toujours visibles, en bas
+      const m = s.match(/^\*\*([^*]+?)\s*:?\s*\*\*\s*:?\s*(.*)$/);
+      if (m) {
+        const k = norm(m[1]).replace(/\s*:$/, '').trim();
+        if (REL_KEYS.has(k)) { const c = REL_CLS[norm(m[2]).trim()] || 'no'; badges.push(`<span class="rel rel-${c}" title="${REL_TIP[c]}">${esc(m[2].trim())}</span>`); return; }
+        if (ACC_KEYS.has(k)) { const v = m[2].trim(); badges.push(`<span class="rel rel-acc" title="Position déduite d'une description, pas relevée en jeu">${esc(ACC_TXT[v] || v)}</span>`); return; }
+        cur = AIDE_KEYS.has(k) ? aide : ESSENTIEL.has(k) ? top : more;
+      } else if (hintCat && s) cur = aide;
       cur.push(line);
     });
     const clean = (a) => a.join('\n').trim();
-    const t = clean(top), mo = clean(more), f = clean(foot);
-    return (t ? '<div class="desc">' + md(t) + '</div>' : '') +
+    const t = clean(top), mo = clean(more), f = clean(foot), ai = clean(aide);
+    return (badges.length ? '<div class="rels">' + badges.join('') + '</div>' : '') +
+      (t ? '<div class="desc">' + md(t) + '</div>' : '') +
+      (ai ? `<details class="more aide"><summary>Aide</summary><div class="desc">${md(ai)}</div></details>` : '') +
       (mo ? `<details class="more"><summary>Plus d'infos</summary><div class="desc">${md(mo)}</div></details>` : '') +
       (f ? '<div class="desc desc-foot">' + md(f) + '</div>' : '');
   }
@@ -1578,7 +1607,7 @@
       <button class="share-place" data-share="${l.id}">↗ Partager ce lieu</button>
       <div class="share-msg" aria-live="polite"></div>
       ${nearHtml(f)}
-      ${perfHtml(l)}${l.d ? descHtml(l.d) : ''}
+      ${perfHtml(l)}${l.d ? descHtml(l.d, l) : ''}
     </div>`;
 
     const phone = isPhone();
@@ -1853,7 +1882,7 @@
     const nums = [...m[1].matchAll(/\$\s?([\d,]+)/g)].map(x => parseInt(x[1].replace(/,/g, ''), 10)).filter(n => n > 0);
     return nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : null;
   }
-  let cashItems = null, cashFilter = 'all', cashSort = 'value';
+  let cashItems = null, cashFilter = 'all', cashSort = 'value', cashAttested = false;
   let focusLabel = '', focusKind = '';   // pastille en haut à droite : « Je veux du cash » ou une catégorie seule
   const CASH_KEY = 'leonida.cash.v1';
   // Difficulté des braquages = sécurité indiquée par Map Genie (Low / Medium / High) ; plusieurs choix possibles
@@ -1874,12 +1903,13 @@
     if (sv) {
       if (['value', 'dist'].includes(sv.sort)) cashSort = sv.sort;
       if (CASH_KINDS.some(k => k[0] === sv.filter)) cashFilter = sv.filter;
+      cashAttested = sv.attested === true;
       Object.entries(sv.crit || {}).forEach(([k, vals]) => { if (critOn[k] && Array.isArray(vals) && vals.length) critOn[k] = new Set(vals); });
     }
   } catch (e) {}
   const saveCash = () => {
     const crit = {}; Object.entries(critOn).forEach(([k, v]) => { crit[k] = [...v]; });
-    try { localStorage.setItem(CASH_KEY, JSON.stringify({ sort: cashSort, filter: cashFilter, crit })); } catch (e) {}
+    try { localStorage.setItem(CASH_KEY, JSON.stringify({ sort: cashSort, filter: cashFilter, crit, attested: cashAttested })); } catch (e) {}
   };
   const fieldOf = (l, key) => { const m = (l.dEn || '').match(new RegExp('\\*\\*' + key + ':?\\*\\*:?\\s*([^\\n]*)')); return m ? m[1].trim() : null; };
   function critPass(it) {
@@ -1901,28 +1931,31 @@
       if (!v) return null;
       const crit = {};
       (CASH_CRIT[kind] || []).forEach(c => { crit[c.key] = fieldOf(l, c.key); });
-      return { f, l, kind, v, crit };
+      const rel = REL_CLS[norm(fieldOf(l, 'Reliability') || '')] || '';
+      return { f, l, kind, v, crit, rel };
     }).filter(Boolean);
     const here = herePos();
     const from = here || (() => { const c = view.getCenter(); return { x: c[0], y: -c[1] }; })();
-    const items = cashItems.filter(it => (cashFilter === 'all' || it.kind === cashFilter) && critPass(it))
+    const items = cashItems.filter(it => (cashFilter === 'all' || it.kind === cashFilter) && critPass(it) && !(cashAttested && (it.rel === 'no' || it.rel === 'div')))
       .map(it => Object.assign(it, { d: Math.hypot(it.l.x - from.x, it.l.y - from.y), done: markOf(it.l.id).st === 'done' }));
     items.sort((a, b) => (a.done - b.done) || (cashSort === 'value' ? (b.v.max - a.v.max) || (a.d - b.d) : (a.d - b.d) || (b.v.max - a.v.max)));
     const note = cashSort === 'dist' && !here
       ? '<div class="cash-note">Distances depuis le centre de la carte. Pour partir de ta position : appui long sur la carte (ou clic droit), puis « Je suis là ».</div>' : '';
     listEl.innerHTML = `<div class="price-head"><b>Je veux du cash</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
-      <div class="price-filter">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}</div>
+      <div class="price-filter">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}` +
+      `<button data-ca class="ca${cashAttested ? ' sel' : ''}" title="Masque les montants qui viennent d'une seule source ou sur lesquels les sources ne sont pas d'accord. Les montants de la carte du jeu restent.">${cashAttested ? '✓ ' : ''}Attestées seulement</button></div>
       <div class="price-filter">${CASH_KINDS.map(([k, t]) => `<button data-cf="${k}" class="${k === cashFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
       // Lignes de difficulté : braquages avec « Tout » ou « Braquages », véhicules avec « Véhicules à revendre »
       Object.entries(CASH_CRIT).filter(([k]) => cashFilter === k || (cashFilter === 'all' && k === 'braquage'))
         .map(([k, list]) => list.map(c => `<div class="price-filter"><span class="pf-lab">${c.lab} :</span>${c.vals.map(([v, t]) =>
           `<button data-crit="${k}|${c.key}|${esc(v)}" class="${critOn[k + '|' + c.key].has(v) ? 'sel' : ''}">${t}</button>`).join('')}</div>`).join('')).join('') + note +
       (items.length ? items.slice(0, 300).map((it) => {
-        const { f, l, v, d, done, kind } = it, ct = critText(it);
+        const { f, l, v, d, done, kind, rel } = it, ct = critText(it);
+        const rb = rel ? `<span class="rel rel-${rel}" title="${REL_TIP[rel]}">${REL_SHORT[rel]}</span>` : '';
         const c = catById[l.c], r = regionById[l.r];
         const val = v.min !== v.max ? money(v.min) + ' à ' + v.max.toLocaleString('fr-CH') : (kind === 'course' ? "jusqu'à " : '') + money(v.max);
         return `<div class="mk res${done ? ' done-cash' : ''}" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
-          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}</div><div class="s">${esc(c.title)}${r ? ' · ' + esc(r) : ''}${ct ? ' · ' + esc(ct) : ''} · <span class="dist">${distTxt(d)}</span></div></div>
+          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}${rb}</div><div class="s">${esc(c.title)}${r ? ' · ' + esc(r) : ''}${ct ? ' · ' + esc(ct) : ''} · <span class="dist">${distTxt(d)}</span></div></div>
           <span class="price">${val}</span></div>`;
       }).join('') : '<div class="empty">Rien dans cette catégorie.</div>');
     listEl.dataset.view = 'cash';
@@ -1972,6 +2005,7 @@
     if (cs) { cashSort = cs.dataset.cs; showCashList(); return; }
     const cf = e.target.closest('[data-cf]');
     if (cf) { cashFilter = cf.dataset.cf; showCashList(); return; }
+    if (e.target.closest('[data-ca]')) { cashAttested = !cashAttested; showCashList(); return; }
     const cb = e.target.closest('[data-crit]');
     if (cb) {
       const [k, key, v] = cb.dataset.crit.split('|'), on = critOn[k + '|' + key];

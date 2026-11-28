@@ -210,7 +210,7 @@ window.TRAD_FR = (function () {
 
   // Titres complets traduits tels quels (le reste passe par les règles plus bas)
   const titres = {
-    'Crab Research Outpost': 'Avant-poste de recherche sur les crabes', 'Apollo Aggregates Warehouse': 'Entrepôt Apollo Aggregates (ours en peluche)',
+    'Crab Research Outpost': 'Avant-poste de recherche sur les crabes', 'Millport Container Stash': 'Conteneur du port de Millport', 'Sahara Arena Golden Bill': 'Billet doré de la Sahara Arena', 'VCIA Golden Ticket': 'Ticket doré de l\'aéroport (VCIA)', 'Abandoned Yacht Stash': 'Yacht abandonné', 'Apollo Aggregates Warehouse': 'Entrepôt Apollo Aggregates (ours en peluche)',
     'Three Sheets Liquor Parrot Stash': 'Cachette du perroquet, Three Sheets Liquor', "Jason's House Floorboards": 'Plancher de la maison de Jason',
     'Pearl House Hair Salon Back Room': 'Arrière-salle du Pearl House Hair Salon',
     'Room 701, the Y Hotel': 'Chambre 701, Y Hotel',
@@ -605,7 +605,7 @@ window.TRAD_FR = (function () {
 
   // --- Descriptions ---
   const rubriques = {
-    'Address': 'Adresse', 'Inspired by': 'Inspiré de', 'Chapter': 'Chapitre', 'Hair Colours': 'Couleurs de cheveux', 'Jason Hairstyles': 'Coupes pour Jason', 'Lucia Hairstyles': 'Coupes pour Lucia', 'Beards': 'Barbes', 'Price with Savings Perk': "Prix avec le bonus d'épargne",
+    'Address': 'Adresse', 'Inspired by': 'Inspiré de', 'Chapter': 'Chapitre', 'Hair Colours': 'Couleurs de cheveux', 'Jason Hairstyles': 'Coupes pour Jason', 'Lucia Hairstyles': 'Coupes pour Lucia', 'Beards': 'Barbes', 'Price with Savings Perk': "Prix avec le bonus d'épargne", 'Reliability': 'Fiabilité', 'Location Accuracy': "Précision de l'emplacement", 'Tips': 'Astuces', 'Codes': 'Codes', 'Other Estimate': 'Autre estimation',
     'Location': 'Emplacement', 'Legend': 'Emplacement', 'Security': 'Sécurité', 'Route': 'Lignes', 'Type': 'Type',
     'Features': 'Équipements', 'Take Value': 'Butin', 'Challenge': 'Défi', 'Access': 'Accès', 'Tracker': 'Traceur',
     'Era': 'Époque', 'Body Condition': 'État de la carrosserie', 'Seats': 'Places', 'Specialist': 'Spécialiste',
@@ -625,6 +625,8 @@ window.TRAD_FR = (function () {
     'Hot Rods': 'Hot rods', 'Luxury': 'Luxe', 'Retro': 'Rétro', 'Donks': 'Donks', 'Vinyl': 'Vinyles', 'Racing': 'Course'
   };
   const valeurs = {
+    'Reliability': { 'Attested': 'Attesté', 'Not attested': 'Non attesté', 'Sources disagree': 'Sources divergentes' },
+    'Location Accuracy': { 'Approximate': 'Approximative', 'Assumed place': 'Lieu supposé' },
     'Security': { 'Medium': 'Moyenne', 'High': 'Élevée', 'Low': 'Faible', 'Alarmed': 'Alarme', 'None': 'Aucune', 'Deactivated': 'Désactivée' },
     'Access': { 'Locked': 'Verrouillé', 'Unlocked': 'Ouvert', 'Key Cloner': 'Cloneur de clés' },
     'Tracker': { 'None': 'Aucun', 'Standard': 'Standard', 'Advanced': 'Avancé', 'Tracker': 'Traceur' },

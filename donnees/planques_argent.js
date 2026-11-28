@@ -109,10 +109,10 @@
   // Coffre du bureau du Hog Stars Garage (Ambrosia)
   const hog = at(1090320);
   if (hog) hog.d = '**Take Value:** $4,688\n' + NO + '\n' + (hog.d || '') + "\n**Tips:** Le coffre est sous le frigo Sprunk Light du bureau.\n" + VP + '\n_Vidéo de Rizzy RP, montant non recoupé._';
-  // Coffre en hauteur de l'Industrial Weed Grow (North Mariana County)
+  // Coffres de l'Industrial Weed Grow (North Mariana County) : les guides donnent des montants très différents
   const weed = at(1090304);
-  if (weed) weed.d = '**Take Value:** $20,000 - $30,000\n' + NO + '\n' + (weed.d || '') +
-    "\n_Deux vidéos parlent d'un coffre dans le bureau de l'étage d'un entrepôt de North Mariana County : jusqu'à 20 000 $ (Nocode GTA, « entrepôt de culture ») et 30 000 $ (FlayHQ, « au-dessus de Big Pine »). C'est très probablement ce coffre, mais aucune ne le nomme._" +
+  if (weed) weed.d = '**Take Value:** $900 - $30,000\n' + DIV + '\n' + (weed.d || '') +
+    "\n_Selon VicePulse, plusieurs coffres dans ce lieu : bureau ouest de l'étage (plus de 984 $), bureau de l'entrepôt du haut (plus de 900 $), salle de sécurité (plus de 6 000 $). Deux autres vidéos parlent d'un coffre de bureau à l'étage d'un entrepôt de North Mariana County à 20 000 $ (Nocode GTA) et 30 000 $ (FlayHQ), sans nommer le lieu : rapprochement incertain._" +
     '\n**Tips:** Élimine les deux gardes, puis monte au bureau en hauteur.\n' + VP;
   // Manatee Hotel (Kingfishers) : NiaDB n'a pas de montant ; VicePulse, GTA BOOM et Beebom concordent autour de 2 000 $
   const man = at(1091953);
@@ -165,4 +165,18 @@
     lines.push(BX);
     more(id, lines);
   });
+
+  // --- Détails de VicePulse sur des opérations déjà sur la carte (une vidéo chacun) ---
+  // Placés juste après le butin et le badge, pour rester visibles en haut de la fiche
+  const afterRel = (id, line) => {
+    const l = at(id); if (!l) return;
+    const d = l.d || '', re = /\*\*Reliability:\*\*[^\n]*|\*\*Take Value:\*\*[^\n]*/;
+    l.d = re.test(d) ? d.replace(/\*\*Reliability:\*\*[^\n]*/.test(d) ? /\*\*Reliability:\*\*[^\n]*/ : /\*\*Take Value:\*\*[^\n]*/, (m) => m + '\n' + line) : line + '\n' + d;
+    more(id, [VP]);
+  };
+  afterRel(1091955, "_Selon VicePulse, trois coffres : un coffre-classeur à ouvrir au tournevis (1 400 à 1 800 $), le bureau du bâtiment sud-ouest à l'étage (plus de 2 000 $) et l'arrière-salle, à l'explosif (3 800 $). Soit au moins 7 200 $ en tout, entre NiaDB et Bloxodes._");
+  afterRel(1091961, "_Selon VicePulse : coffre du bâtiment arrière gauche, 5 000 $._");
+  afterRel(1091953, "_Selon VicePulse : environ 2 000 $ au repaire secret des Kingfishers._");
+  afterRel(1091962, "_Selon VicePulse : 2 000 $ de cocaïne sur les tables de l'entrepôt._");
+  afterRel(1091954, "_Selon VicePulse : jusqu'à 2 000 $ par cabane._");
 })();

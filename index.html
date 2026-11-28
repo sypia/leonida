@@ -137,6 +137,25 @@
   .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
   .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
   .mk .price.none { color: var(--muted); font-weight: 500; }
+  /* Liste « Je veux du cash » */
+  .cash-btn {
+    top: 14px; right: 14px; height: 40px; padding: 0 14px 0 11px; border-radius: 20px; display: flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 700; cursor: pointer; color: #7ee2a8;
+  }
+  .cash-btn:hover { background: var(--panel-hover); }
+  .cash-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .cash-note { margin: 0 6px 8px; padding: 7px 9px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+  .mk.done-cash { opacity: 0.45; }
+  .mk .dist { color: #9cc9e6; }
+  /* Menu de l'appui long : épingle ou position */
+  .press-menu { display: flex; flex-direction: column; gap: 4px; padding: 6px; border-radius: 12px; background: var(--panel); box-shadow: var(--shadow);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transform: translate(-50%, calc(-100% - 14px)); }
+  .press-menu button { display: flex; align-items: center; gap: 8px; min-width: 170px; height: 40px; padding: 0 12px; border: 0; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: left; }
+  .press-menu button:hover, .press-menu button:active { background: rgba(255, 255, 255, 0.15); }
+  .press-menu button svg { width: 18px; height: 18px; color: #ff5d5d; flex: none; }
+  .press-menu button.minor { height: 32px; font-size: 12px; font-weight: 500; color: var(--muted); background: transparent; }
+  .press-menu .dot-here { width: 14px; height: 14px; border-radius: 50%; background: #3b9cf6; box-shadow: 0 0 0 3px #fff, 0 0 0 8px rgba(59, 156, 246, 0.3); margin: 0 4px; }
   .mode-title { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .mode-title b { color: var(--text); }
 
@@ -312,6 +331,9 @@
 </head>
 <body class="side-closed">
 <div id="map" tabindex="0"></div>
+<div class="panel cash-btn" id="cash-btn" role="button" tabindex="0" title="Lieux et activités qui rapportent, triés par gain ou par distance">
+  <svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span>
+</div>
 
 <div class="panel side closed" id="side">
   <div class="side-head">
@@ -1463,6 +1485,7 @@
   map.on('click', (e) => {
     // Le relâchement d'un appui long (qui vient de poser une épingle) n'est pas un clic
     if (lpSuppress) { lpSuppress = false; return; }
+    if (pressCoord) { closePress(); return; }   // un toucher ailleurs referme le menu de l'appui long
     // Les épingles passent avant les points
     const pinHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === pinLayer, hitTolerance: 4 });
     if (pinHit) {
@@ -1587,6 +1610,70 @@
     const it = e.target.closest('.mk[data-id]');
     if (it) goToFeature(byId[it.dataset.id]);
   }, true);
+
+  // --- « Je veux du cash » : tout ce qui rapporte, trié par gain ou par distance ---
+  // Montants lus dans les fiches Map Genie d'origine (anglais)
+  const CASH_KINDS = [['all', 'Tout'], ['braquage', 'Braquages'], ['vehicule', 'Véhicules à revendre'], ['course', 'Courses'], ['drone', 'Drones']];
+  const CASH_FIELD = { braquage: 'Take Value', vehicule: 'Sell Value', course: 'Max Payout', drone: 'Reward' };
+  const CASH_CAT = { 'Bank': 'braquage', 'Big Bank': 'braquage', 'Payday Loans': 'braquage', 'Low-End Jewelry Store': 'braquage',
+    'High-End Jewelry Store': 'braquage', 'Pawn Shop': 'braquage', 'Convenience Store': 'braquage', 'Fast Food': 'braquage',
+    'Liquor Store': 'braquage', 'Standout Vehicle': 'vehicule', 'Randy Vehicle': 'vehicule', 'Moses Vehicle': 'vehicule', 'Top Fun Drones': 'drone' };
+  const RACING_GROUP = 27136;
+  const cashKindOf = (c) => CASH_CAT[c.en] || (c.group_id === RACING_GROUP ? 'course' : null);
+  function cashOf(l, kind) {
+    const m = (l.dEn || '').match(new RegExp('\\*\\*' + CASH_FIELD[kind] + ':?\\*\\*:?\\s*([^\\n]*)'));
+    if (!m) return null;
+    const nums = [...m[1].matchAll(/\$\s?([\d,]+)/g)].map(x => parseInt(x[1].replace(/,/g, ''), 10)).filter(n => n > 0);
+    return nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : null;
+  }
+  let cashItems = null, cashFilter = 'all', cashSort = 'value';
+  const money = (n) => '$' + n.toLocaleString('fr-CH');
+  // 1 px de carte (zoom 6) = 0,5 m dans le jeu (coordonnées gtadb.org, en mètres)
+  const distTxt = (px) => { const m = px / 2; return m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km'; };
+  function showCashList() {
+    if (!cashItems) cashItems = allFeatures.map(f => {
+      const l = f.get('loc'), kind = cashKindOf(catById[l.c]);
+      const v = kind && cashOf(l, kind);
+      return v ? { f, l, kind, v } : null;
+    }).filter(Boolean);
+    const here = herePos();
+    const from = here || (() => { const c = view.getCenter(); return { x: c[0], y: -c[1] }; })();
+    const items = cashItems.filter(it => cashFilter === 'all' || it.kind === cashFilter)
+      .map(it => Object.assign(it, { d: Math.hypot(it.l.x - from.x, it.l.y - from.y), done: markOf(it.l.id).st === 'done' }));
+    items.sort((a, b) => (a.done - b.done) || (cashSort === 'value' ? (b.v.max - a.v.max) || (a.d - b.d) : (a.d - b.d) || (b.v.max - a.v.max)));
+    const note = cashSort === 'dist' && !here
+      ? '<div class="cash-note">Distances depuis le centre de la carte. Pour partir de ta position : appui long sur la carte (ou clic droit), puis « Je suis là ».</div>' : '';
+    listEl.innerHTML = `<div class="price-head"><b>Je veux du cash</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
+      <div class="price-filter">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}</div>
+      <div class="price-filter">${CASH_KINDS.map(([k, t]) => `<button data-cf="${k}" class="${k === cashFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` + note +
+      (items.length ? items.slice(0, 300).map(({ f, l, v, d, done, kind }) => {
+        const c = catById[l.c], r = regionById[l.r];
+        const val = v.min !== v.max ? money(v.min) + ' à ' + v.max.toLocaleString('fr-CH') : (kind === 'course' ? "jusqu'à " : '') + money(v.max);
+        return `<div class="mk res${done ? ' done-cash' : ''}" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
+          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}</div><div class="s">${esc(c.title)}${r ? ' · ' + esc(r) : ''} · <span class="dist">${distTxt(d)}</span></div></div>
+          <span class="price">${val}</span></div>`;
+      }).join('') : '<div class="empty">Rien dans cette catégorie.</div>');
+    listEl.dataset.view = 'cash';
+  }
+  listEl.addEventListener('click', (e) => {
+    if (listEl.dataset.view !== 'cash') return;
+    if (e.target.closest('[data-cash-back]')) { delete listEl.dataset.view; rebuildCategoryList(); return; }
+    const cs = e.target.closest('[data-cs]');
+    if (cs) { cashSort = cs.dataset.cs; showCashList(); return; }
+    const cf = e.target.closest('[data-cf]');
+    if (cf) { cashFilter = cf.dataset.cf; showCashList(); return; }
+    const it = e.target.closest('.mk[data-id]');
+    if (it) goToFeature(byId[it.dataset.id]);
+  }, true);
+  function openCash() {
+    if (mode !== 'all') setMode('all');
+    setSide(true);
+    showCashList();
+    listEl.scrollTop = 0;
+  }
+  const cashBtn = document.getElementById('cash-btn');
+  cashBtn.onclick = openCash;
+  cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCash(); } };
 
   function goToFeature(f) {
     if (!f) return;
@@ -2011,6 +2098,52 @@
     if (f) goToPin(f, 'view');
   });
 
+  // --- « Je suis là » : ma position sur la carte (mémorisée dans le navigateur) ---
+  const HERE_KEY = 'leonida.position.v1';
+  let here = null;
+  try { const h = JSON.parse(localStorage.getItem(HERE_KEY) || 'null'); if (h && isFinite(h.x) && isFinite(h.y)) here = { x: h.x, y: h.y }; } catch (e) {}
+  function herePos() { return here; }
+  const hereSource = new ol.source.Vector();
+  const hereLayer = new ol.layer.Vector({ source: hereSource, style: [
+    new ol.style.Style({ image: new ol.style.Circle({ radius: 17, fill: new ol.style.Fill({ color: 'rgba(59, 156, 246, 0.22)' }) }) }),
+    new ol.style.Style({ image: new ol.style.Circle({ radius: 8, fill: new ol.style.Fill({ color: '#3b9cf6' }), stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 }) }) })
+  ] });
+  map.addLayer(hereLayer);
+  function setHere(p) {
+    here = p;
+    try { if (p) localStorage.setItem(HERE_KEY, JSON.stringify({ x: Math.round(p.x), y: Math.round(p.y) })); else localStorage.removeItem(HERE_KEY); } catch (e) {}
+    hereSource.clear();
+    if (here) hereSource.addFeature(new ol.Feature(new ol.geom.Point([here.x, -here.y])));
+    if (listEl.dataset.view === 'cash') showCashList();
+  }
+  setHere(here);
+
+  // Menu de l'appui long : poser une épingle, ou dire « je suis là »
+  const pressEl = document.createElement('div');
+  pressEl.className = 'press-menu';
+  const pressOverlay = new ol.Overlay({ element: pressEl, stopEvent: true });
+  map.addOverlay(pressOverlay);
+  let pressCoord = null;
+  function closePress() { pressCoord = null; pressOverlay.setPosition(undefined); }
+  function openPress(coord) {
+    closePopup();
+    pressCoord = coord;
+    pressEl.innerHTML = `<button data-press="pin">${PIN_ICO} Poser une épingle</button>
+      <button data-press="here"><span class="dot-here"></span> Je suis là</button>` +
+      (here ? '<button class="minor" data-press="clear">Effacer ma position</button>' : '');
+    pressOverlay.setPosition(coord);
+    try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+  }
+  pressEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-press]');
+    if (!b || !pressCoord) return;
+    const c = pressCoord; closePress();
+    if (b.dataset.press === 'pin') startNewPin(c);
+    else if (b.dataset.press === 'here') setHere({ x: c[0], y: -c[1] });
+    else setHere(null);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pressCoord) closePress(); });
+
   // --- Appui long (doigt ou souris) et clic droit ---
   const LONG_MS = 550;
   let lpTimer = 0, lpStart = null, lpSuppress = false;
@@ -2022,12 +2155,12 @@
     lpSuppress = false;
     if (lpPointers.size > 1) return;                          // pincement : pas d'épingle
     if (e.pointerType === 'mouse' && e.button !== 0) return;  // le clic droit passe par contextmenu
-    if (e.target.closest && e.target.closest('.popup')) return;
+    if (e.target.closest && e.target.closest('.popup, .press-menu')) return;
     lpStart = [e.clientX, e.clientY];
     const px = map.getEventPixel(e);
     lpTimer = setTimeout(() => {
       lpStart = null; lpSuppress = true;
-      startNewPin(map.getCoordinateFromPixel(px));
+      openPress(map.getCoordinateFromPixel(px));
     }, LONG_MS);
   });
   viewport.addEventListener('pointermove', (e) => {
@@ -2041,7 +2174,7 @@
     e.preventDefault();
     if (lpSuppress) return;                 // l'appui long vient déjà de poser une épingle
     if (lpStart) { lpCancel(); lpSuppress = true; }   // appui long tactile (Android) : on le prend ici
-    startNewPin(map.getCoordinateFromPixel(map.getEventPixel(e)));
+    openPress(map.getCoordinateFromPixel(map.getEventPixel(e)));
   });
 
   refreshPins();

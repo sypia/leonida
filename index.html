@@ -62,6 +62,11 @@
   .chip { display: inline-flex; align-items: center; height: 30px; padding: 0 11px; border-radius: 15px; cursor: pointer; font-size: 12px;
     border: 1px solid rgba(255, 255, 255, 0.16); color: var(--muted); }
   .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chap-lab { align-self: center; font-size: 12px; color: var(--muted); margin-right: 2px; }
+  .chip-b { min-width: 32px; height: 30px; padding: 0 9px; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.16); background: transparent;
+    color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .chip-b.sel { background: rgba(126, 226, 168, 0.18); border-color: rgba(126, 226, 168, 0.7); color: #e9fff2; }
+  .chap-note { font-size: 11px; color: var(--muted); margin: -2px 0 8px; line-height: 1.35; }
   .chip:has(input:checked) { background: rgba(126, 226, 168, 0.18); border-color: rgba(126, 226, 168, 0.7); color: #e9fff2; }
   .chip:has(input:focus-visible) { outline: 2px solid #7ee2a8; }
   /* Crédits : pastille dépliable */
@@ -417,6 +422,13 @@
           <label class="chip"><input type="checkbox" id="show-names"><span>Noms des lieux</span></label>
           <label class="chip"><input type="checkbox" id="show-borders"><span>Frontières</span></label>
         </div>
+        <div class="disp-lab">Ma progression dans l'histoire</div>
+        <div class="chips" id="chap-row">
+          <span class="chap-lab">Chapitre</span>
+          <button class="chip-b" data-chap="0" title="Pas indiqué : tout est affiché">–</button>
+          <button class="chip-b" data-chap="1">1</button><button class="chip-b" data-chap="2">2</button><button class="chip-b" data-chap="3">3</button><button class="chip-b" data-chap="4">4</button><button class="chip-b" data-chap="5">5</button>
+        </div>
+        <div class="chap-note" id="chap-note"></div>
         <div class="disp-lab">Tes marques sur la carte</div>
         <div class="chips" id="show-row">
           <label class="chip"><input type="checkbox" data-show="pins"><span>Épingles</span></label>
@@ -470,6 +482,7 @@
 <script src="donnees/points_dexerto.js"></script>
 <script src="donnees/points_gtadb.js"></script>
 <script src="donnees/points_scoop.js"></script>
+<script src="donnees/niadb.js"></script>
 <script src="donnees/doublons.js"></script>
 <script src="donnees/corrections.js"></script>
 <script src="donnees/organisation.js"></script>
@@ -830,11 +843,13 @@
   const saveEnabled = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify([...enabled])); } catch (e) {} };
 
   // Une "feature" OpenLayers par point ; y inversé (OpenLayers a l'axe y vers le haut)
+  const byIdEarly = {};
   const allFeatures = DATA.locations.map(l => {
     const f = new ol.Feature({ geometry: new ol.geom.Point([l.x, -l.y]) });
     f.set('loc', l);
     f.set('color', groupColor[catById[l.c].group_id] || '#fff');
     f.set('icon', iconKeyOf(catById[l.c]));
+    byIdEarly[l.id] = f;
     return f;
   });
 
@@ -866,7 +881,28 @@
     else if (localStorage.getItem('leonida.masquerVisites') === '1') show.done = false;
   } catch (e) {}
   const saveShow = () => { try { localStorage.setItem(SHOW_KEY, JSON.stringify(show)); } catch (e) {} };
-  const hiddenByMarks = (id) => { const m = markOf(id); return (m.fav && !show.fav) || (m.st === 'todo' && !show.todo) || (m.st === 'done' && !show.done); };
+  const hiddenByMarks = (id) => { const m = markOf(id); return (m.fav && !show.fav) || (m.st === 'todo' && !show.todo) || (m.st === 'done' && !show.done) || spoiler(id); };
+  // --- Ma progression : chapitre en cours (retenu dans le navigateur) ---
+  const CHAP_KEY = 'leonida.chapitre.v1';
+  let chapter = 0;   // 0 = pas indiqué
+  try { const c = +localStorage.getItem(CHAP_KEY); if (c >= 1 && c <= 5) chapter = c; } catch (e) {}
+  const chapCache = {};
+  // Chapitre d'un lieu, s'il est connu : « **Chapter:** 3 » (NiaDB) ou « Chapter 2 main mission » (Dexerto)
+  function chapterOf(l) {
+    if (!(l.id in chapCache)) {
+      const m = (l.dEn || l.d || '').match(/\*\*Chapter:\*\*\s*(\d)|\bChapter (\d) main mission/);
+      chapCache[l.id] = m ? +(m[1] || m[2]) : 0;
+    }
+    return chapCache[l.id];
+  }
+  // Missions et planques des chapitres suivants : masquées pour ne rien dévoiler
+  const SPOIL_CATS = new Set([990001, 990005]);
+  function spoiler(id) {
+    if (!chapter) return false;
+    const f = byIdEarly[id]; if (!f) return false;
+    const l = f.get('loc');
+    return SPOIL_CATS.has(l.c) && chapterOf(l) > chapter;
+  }
   // Catégories dont les fiches donnent un prix de revente (« Sell Value »)
   const PRICE_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
 
@@ -1410,7 +1446,7 @@
   const ESSENTIEL = new Set(['location', 'legend', 'emplacement', 'take value', 'butin', 'sell value', 'valeur de revente',
     'security', 'securite', 'access', 'acces', 'tracker', 'traceur', 'max payout', 'gain maximum', 'buy in', "droit d'entree",
     'reward', 'recompense', 'price', 'prix', 'cost', 'cout', 'membership cost', "prix de l'abonnement", 'inspired by', 'inspire de',
-    'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
+    'chapter', 'chapitre', 'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
   function descHtml(d) {
     const top = [], more = [], foot = [];
     let cur = top;
@@ -1610,6 +1646,9 @@
     // Le relâchement d'un appui long (qui vient de poser une épingle) n'est pas un clic
     if (lpSuppress) { lpSuppress = false; return; }
     if (pressCoord) { closePress(); return; }   // un toucher ailleurs referme le menu de l'appui long
+    // Ma planque : ouvre la fiche de la planque
+    const homeHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === homeLayer, hitTolerance: 4 });
+    if (homeHit && byId[homeHit.get('homeOf')]) { openPopup(byId[homeHit.get('homeOf')]); return; }
     // Les épingles passent avant les points
     const pinHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === pinLayer, hitTolerance: 4 });
     if (pinHit) {
@@ -1742,7 +1781,9 @@
   const CASH_FIELD = { braquage: 'Take Value', vehicule: 'Sell Value', course: 'Max Payout', drone: 'Reward' };
   const CASH_CAT = { 'Bank': 'braquage', 'Big Bank': 'braquage', 'Payday Loans': 'braquage', 'Low-End Jewelry Store': 'braquage',
     'High-End Jewelry Store': 'braquage', 'Pawn Shop': 'braquage', 'Convenience Store': 'braquage', 'Fast Food': 'braquage',
-    'Liquor Store': 'braquage', 'Standout Vehicle': 'vehicule', 'Randy Vehicle': 'vehicule', 'Moses Vehicle': 'vehicule', 'Top Fun Drones': 'drone' };
+    'Liquor Store': 'braquage', 'Kingfishers': 'braquage', 'Kolt & Associates': 'braquage', 'M7': 'braquage', 'La Polilla Negra': 'braquage',
+    'Final Chapter': 'braquage', 'San4San': 'braquage', 'PTT Youngin$': 'braquage', 'The Guardia Brothers': 'braquage', 'Criminals': 'braquage',
+    'Standout Vehicle': 'vehicule', 'Randy Vehicle': 'vehicule', 'Moses Vehicle': 'vehicule', 'Top Fun Drones': 'drone' };
   const RACING_GROUP = 27136;
   const cashKindOf = (c) => CASH_CAT[c.en] || (c.group_id === RACING_GROUP ? 'course' : null);
   function cashOf(l, kind) {
@@ -2353,6 +2394,39 @@
     if (listEl.dataset.view === 'cash') showCashList();
   }
   setHere(here);
+
+  // --- Ma planque selon le chapitre (NiaDB : planques par chapitre ; positions Dexerto et gtadb.org) ---
+  const homeSource = new ol.source.Vector();
+  const HOME_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#2fbf71" stroke="#ffffff" stroke-width="5"/>' +
+    '<path d="M18 31l14-12 14 12M22 28v15h20V28" fill="none" stroke="#06281a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const homeLayer = new ol.layer.Vector({ source: homeSource, zIndex: 20, style: [
+    new ol.style.Style({ image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(HOME_SVG), scale: 0.55 }),
+      text: new ol.style.Text({ text: 'Ma planque', offsetY: 26, font: '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(10, 20, 28, 0.85)', width: 3.2 }) }) })
+  ] });
+  map.addLayer(homeLayer);
+  function homeFor(ch) {
+    const list = (window.PLANQUES || []).filter(([c]) => c <= ch);
+    return list.length ? list[list.length - 1][1] : null;
+  }
+  function applyChapter() {
+    document.querySelectorAll('#chap-row [data-chap]').forEach(b => b.classList.toggle('sel', +b.dataset.chap === chapter));
+    homeSource.clear();
+    const hid = chapter ? homeFor(chapter) : null, hf = hid && byId[hid];
+    if (hf) { const f = new ol.Feature(hf.getGeometry().clone()); f.set('homeOf', hid); homeSource.addFeature(f); }
+    const note = document.getElementById('chap-note');
+    if (!chapter) note.textContent = "Indique ton chapitre : ta planque s'affiche et les missions des chapitres suivants sont masquées.";
+    else note.textContent = 'Ta planque : ' + (hf ? hf.get('loc').t : '?') + '.' + (chapter === 5 && window.PLANQUE_5 ? ' ' + window.PLANQUE_5 + '.' : '') +
+      ' Missions et planques des chapitres suivants masquées.';
+    refreshPoints();
+  }
+  document.getElementById('chap-row').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-chap]'); if (!b) return;
+    chapter = +b.dataset.chap;
+    try { localStorage.setItem(CHAP_KEY, String(chapter)); } catch (er) {}
+    applyChapter();
+  });
+  applyChapter();
 
   // Menu de l'appui long : poser une épingle, ou dire « je suis là »
   const pressEl = document.createElement('div');

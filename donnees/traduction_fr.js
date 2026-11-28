@@ -177,6 +177,7 @@ window.TRAD_FR = (function () {
     'Nature': 'Nature',
     'Building': 'Bâtiment',
     'Scoop Container': 'Conteneur Scoop',
+    'Room 701, the Y Hotel': 'Chambre 701, Y Hotel',
     'Restaurant': 'Restaurant',
     'Other Shop': 'Autre magasin',
     'Bridges & Stations': 'Ponts, gares et aéroports'
@@ -208,6 +209,7 @@ window.TRAD_FR = (function () {
 
   // Titres complets traduits tels quels (le reste passe par les règles plus bas)
   const titres = {
+    'Room 701, the Y Hotel': 'Chambre 701, Y Hotel',
     'Scoop Container': 'Conteneur Scoop',
     // Lieux de méditation
     'Ascent Meditation': "Méditation de l'ascension",
@@ -599,7 +601,7 @@ window.TRAD_FR = (function () {
 
   // --- Descriptions ---
   const rubriques = {
-    'Address': 'Adresse', 'Inspired by': 'Inspiré de',
+    'Address': 'Adresse', 'Inspired by': 'Inspiré de', 'Chapter': 'Chapitre', 'Price with Savings Perk': "Prix avec le bonus d'épargne",
     'Location': 'Emplacement', 'Legend': 'Emplacement', 'Security': 'Sécurité', 'Route': 'Lignes', 'Type': 'Type',
     'Features': 'Équipements', 'Take Value': 'Butin', 'Challenge': 'Défi', 'Access': 'Accès', 'Tracker': 'Traceur',
     'Era': 'Époque', 'Body Condition': 'État de la carrosserie', 'Seats': 'Places', 'Specialist': 'Spécialiste',

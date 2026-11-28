@@ -34,15 +34,42 @@
   }
   /* --- Panneau latéral des catégories --- */
   .side {
-    left: 14px; bottom: 70px; top: 14px; width: 290px;
+    left: 0; bottom: 0; top: 0; width: 330px; border-radius: 0 var(--radius) var(--radius) 0;
     display: flex; flex-direction: column; overflow: hidden;
     user-select: none; -webkit-user-select: none;
     transform-origin: bottom left;
     transition: transform 0.25s ease, opacity 0.2s ease;
   }
   /* Fermé : le panneau redescend sous le bouton et disparaît */
-  .side.closed { transform: translateY(calc(100% + 80px)); opacity: 0; pointer-events: none; }
-  .side-head { padding: 12px 14px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .side.closed { transform: translateX(-105%); opacity: 0; pointer-events: none; }
+  .side-head { padding: 14px 14px 10px 66px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+  .side-head > .tabs, .side-head > .cash-main, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: -52px; }
+  /* Bouton « Je veux du cash » en tête du panneau */
+  .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: calc(100% + 52px); height: 40px; margin-top: 12px;
+    border: 0; border-radius: 10px; background: rgba(47, 191, 113, 0.9); color: #06281a; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .cash-main:hover { background: rgba(47, 191, 113, 1); }
+  .cash-main svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
+  /* Réglages d'affichage, repliables */
+  .disp { margin-top: 10px; border-radius: 9px; background: rgba(0, 0, 0, 0.22); }
+  .disp summary { list-style: none; display: flex; align-items: center; gap: 6px; padding: 8px 10px; cursor: pointer; font-size: 12px; font-weight: 700; }
+  .disp summary::-webkit-details-marker { display: none; }
+  .disp .chev { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; transition: transform 0.2s; }
+  .disp[open] .chev { transform: rotate(90deg); }
+  .disp-sum { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 11px; }
+  .disp-body { padding: 0 10px 10px; }
+  .disp-lab { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin: 4px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .chip { display: inline-flex; align-items: center; height: 30px; padding: 0 11px; border-radius: 15px; cursor: pointer; font-size: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16); color: var(--muted); }
+  .chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .chip:has(input:checked) { background: rgba(126, 226, 168, 0.18); border-color: rgba(126, 226, 168, 0.7); color: #e9fff2; }
+  .chip:has(input:focus-visible) { outline: 2px solid #7ee2a8; }
+  /* Crédits : pastille dépliable */
+  .credits-btn { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 13px; border: 1px solid rgba(255, 255, 255, 0.14);
+    background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+  .credits-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+  .credits-btn[aria-expanded="true"] { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+  .credits { margin-top: 8px; }
   .side-head strong { font-size: 15px; letter-spacing: 0.02em; }
   .side-head .sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
   .side-head { position: relative; }
@@ -136,6 +163,13 @@
   .price-filter button { border: 1px solid rgba(255, 255, 255, 0.14); background: transparent; color: var(--muted); border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 11px; cursor: pointer; }
   .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
   .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
+  .cat-res .see { margin-left: auto; display: inline-flex; align-items: center; height: 26px; font-size: 11px; }
+  .popup details.more { margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+  .popup details.more summary { cursor: pointer; padding: 8px 0 4px; font-size: 12px; font-weight: 700; color: #9cc9e6; list-style: none; }
+  .popup details.more summary::-webkit-details-marker { display: none; }
+  .popup details.more summary::before { content: '▸ '; }
+  .popup details.more[open] summary::before { content: '▾ '; }
+  .popup .desc-foot { margin-top: 8px; font-size: 11px; color: var(--muted); }
   .mk .price.none { color: var(--muted); font-weight: 500; }
   /* Liste « Je veux du cash » */
   .cash-btn {
@@ -143,6 +177,8 @@
     font-size: 13px; font-weight: 700; cursor: pointer; color: #7ee2a8;
   }
   .cash-btn:hover { background: var(--panel-hover); }
+  .cash-btn:not(.on) { display: none; }
+  .cash-btn #focus-label { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cash-btn .cash-x { display: none; place-items: center; width: 26px; height: 26px; margin: 0 -6px 0 2px; border-radius: 13px; background: rgba(255, 255, 255, 0.12); color: var(--text); }
   .cash-btn .cash-x svg { width: 14px; height: 14px; stroke-width: 2.6; }
   .cash-btn.on { background: rgba(47, 191, 113, 0.92); color: #06281a; }
@@ -193,13 +229,20 @@
   .popup .marks button.on[data-mark="todo"] { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
   .popup .marks button.on[data-mark="done"] { background: rgba(126, 226, 168, 0.2); border-color: #7ee2a8; color: #7ee2a8; }
 
+  /* Bouton flèche : en haut à gauche sur ordinateur (en bas sur téléphone) ; il reste par-dessus le panneau ouvert */
   .side-toggle {
-    left: 14px; bottom: 14px; height: 44px; padding: 0 16px 0 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;
-    font-size: 13px; font-weight: 600; border-radius: 22px;
+    left: 10px; top: 10px; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    border-radius: 22px; z-index: 12;
   }
+  body:not(.side-closed) .side-toggle { background: rgba(255, 255, 255, 0.08); box-shadow: none; }
   .side-toggle:hover { background: var(--panel-hover); }
-  .side-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.25s; transform: rotate(180deg); }
-  body.side-closed .side-toggle svg { transform: none; }
+  .side-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.25s; transform: rotate(-90deg); }
+  body.side-closed .side-toggle svg { transform: rotate(90deg); }
+  /* Me centrer */
+  .me-btn { right: 14px; bottom: 50px; width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #3b9cf6; }
+  .me-btn:hover { background: var(--panel-hover); }
+  .me-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+  .me-btn.hidden, .cash-btn.hidden { display: none; }
   body.no-anim .side, body.no-anim .side-toggle, body.no-anim .side-toggle svg { transition: none !important; }
 
   /* --- Fiche d'un point --- */
@@ -325,8 +368,15 @@
       background: rgba(16, 24, 31, 0.97);
       padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
     }
-    .side-toggle { width: 44px; padding: 0; justify-content: center; }
-    .side-toggle span { display: none; }
+    .side-toggle { top: auto; left: 14px; bottom: 14px; }
+    body:not(.side-closed) .side-toggle { background: var(--panel); }
+    .side-toggle svg { transform: rotate(180deg); }
+    body.side-closed .side-toggle svg { transform: none; }
+    .side.closed { transform: translateY(calc(100% + 80px)); }
+    .side-head { padding-left: 14px; }
+    .side-head > .tabs, .side-head > .cash-main, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
+    .cash-main { width: 100%; }
+    .me-btn { bottom: 14px; }
     .side-foot { padding-left: 72px; }   /* laisse la place au bouton flèche, qui reste en bas à gauche */
     .popup { width: min(300px, 86vw); }
     .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
@@ -336,8 +386,11 @@
 </head>
 <body class="side-closed">
 <div id="map" tabindex="0"></div>
-<div class="panel cash-btn" id="cash-btn" role="button" tabindex="0" title="Lieux et activités qui rapportent, triés par gain ou par distance">
-  <svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><span class="cash-x" title="Terminer : réafficher tous les points" aria-label="Terminer la recherche"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>
+<div class="panel cash-btn" id="cash-btn" role="button" tabindex="0" title="Seuls ces lieux sont affichés. Touche pour revoir la liste.">
+  <svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span id="focus-label">Je veux du cash</span><span class="cash-x" title="Terminer : réafficher tous les points cochés" aria-label="Terminer"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>
+</div>
+<div class="panel me-btn hidden" id="me-btn" role="button" tabindex="0" title="Me centrer sur ma position" aria-label="Me centrer sur ma position">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
 </div>
 
 <div class="panel side closed" id="side">
@@ -355,17 +408,24 @@
       <button data-mode="done"><span class="ic">✓</span> <span class="tn" data-n="done">0</span></button>
       <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
-    <div class="layers-row">
-      <label class="opt"><input type="checkbox" id="show-names"> Noms des lieux</label>
-      <label class="opt"><input type="checkbox" id="show-borders"> Frontières</label>
-    </div>
-    <div class="show-row" id="show-row">
-      <span class="show-lbl">Sur la carte :</span>
-      <label class="opt"><input type="checkbox" data-show="pins"> Épingles</label>
-      <label class="opt"><input type="checkbox" data-show="fav"> Favoris</label>
-      <label class="opt"><input type="checkbox" data-show="todo"> À visiter</label>
-      <label class="opt"><input type="checkbox" data-show="done"> Visités</label>
-    </div>
+    <button class="cash-main" id="cash-open"><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg>Je veux du cash</button>
+    <details class="disp" id="disp">
+      <summary><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>Affichage<span class="disp-sum" id="disp-sum"></span></summary>
+      <div class="disp-body">
+        <div class="disp-lab">Sur le fond de carte</div>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" id="show-names"><span>Noms des lieux</span></label>
+          <label class="chip"><input type="checkbox" id="show-borders"><span>Frontières</span></label>
+        </div>
+        <div class="disp-lab">Tes marques sur la carte</div>
+        <div class="chips" id="show-row">
+          <label class="chip"><input type="checkbox" data-show="pins"><span>Épingles</span></label>
+          <label class="chip"><input type="checkbox" data-show="fav"><span>★ Favoris</span></label>
+          <label class="chip"><input type="checkbox" data-show="todo"><span>◎ À visiter</span></label>
+          <label class="chip"><input type="checkbox" data-show="done"><span>✓ Visités</span></label>
+        </div>
+      </div>
+    </details>
     <div id="tools-all">
       <div class="side-tools">
         <input id="cat-search" type="search" placeholder="Rechercher un lieu, une catégorie…" autocomplete="off" spellcheck="false">
@@ -390,10 +450,10 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div>
+  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
-  <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg><span>Leonida</span>
+  <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
 </div>
 
 <div id="popup" class="popup hidden"></div>
@@ -410,7 +470,9 @@
 <script src="donnees/points_dexerto.js"></script>
 <script src="donnees/points_gtadb.js"></script>
 <script src="donnees/points_scoop.js"></script>
+<script src="donnees/doublons.js"></script>
 <script src="donnees/corrections.js"></script>
+<script src="donnees/organisation.js"></script>
 <script src="donnees/regions.js"></script>
 <script src="donnees/eaux.js"></script>
 <script src="donnees/traduction_fr.js"></script>
@@ -1161,7 +1223,7 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement ceux de « Je veux du cash »`;
+    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(focusLabel)} »`;
     else if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
@@ -1211,12 +1273,18 @@
     searchIndex = allFeatures.map(f => {
       const l = f.get('loc'), c = catById[l.c], g = groups.find(x => x.id === c.group_id);
       const other = lang === 'fr' ? l.tEn : (l.tFr || '');
-      const title = norm(l.t), title2 = other === l.t ? '' : norm(other);
-      const meta = norm([c.en, c.fr || '', g ? g.en + ' ' + (g.fr || '') : '', rEn[l.r] || '', rFr[l.r] || ''].join(' '));
+      const title = alias(norm(l.t)), title2 = other === l.t ? '' : alias(norm(other));
+      const cat = alias(norm(c.en + ' | ' + (c.fr || '')));
+      const meta = norm([g ? g.en + ' ' + (g.fr || '') : '', rEn[l.r] || '', rFr[l.r] || ''].join(' '));
       const desc = norm(((l.dEn || '') + ' ' + (l.dFr && l.dFr !== l.dEn ? l.dFr : '')).replace(/[*_#>\[\]()]/g, ' '));
-      return { f, title, title2, meta, desc };
+      return { f, title, title2, cat, meta, desc };
     });
   }
+  // Autres façons d'écrire un nom : « 919 » trouve « Nine1Nine »
+  const ALIASES = [['nine1nine', '919'], ['ammu-nation', 'ammunation'], ['pay \'n\' spray', 'pay and spray paynspray']];
+  const alias = (t) => ALIASES.reduce((acc, [a, b]) => acc.includes(a) ? acc + ' ' + b : acc, t);
+  // Le mot cherché commence-t-il un mot du texte ?
+  const wordStart = (t, w) => t.startsWith(w) || t.includes(' ' + w) || t.includes('-' + w) || t.includes('(' + w);
   const placeBox = document.createElement('div');
   placeBox.id = 'place-results';
   const MAX_RESULTS = 60;
@@ -1224,16 +1292,20 @@
     if (!searchIndex) buildSearchIndex();
     const words = q.split(/\s+/).filter(Boolean);
     const out = [];
+    // Ordre : nom qui commence par la recherche, catégorie qui correspond, mot du nom, morceau du nom,
+    // puis groupe ou zone, et en dernier ce qui n'est que dans la description
     for (const it of searchIndex) {
       const tt = it.title + ' | ' + it.title2;
-      const all = tt + ' ' + it.meta + ' ' + it.desc;
+      const all = tt + ' ' + it.cat + ' ' + it.meta + ' ' + it.desc;
       if (!words.every(w => all.includes(w))) continue;
       let score;
       if (it.title.startsWith(q) || (it.title2 && it.title2.startsWith(q))) score = 0;
-      else if (tt.includes(q)) score = 1;
-      else if (words.every(w => tt.includes(w))) score = 2;
-      else if (words.every(w => (tt + ' ' + it.meta).includes(w))) score = 3;
-      else score = 4;
+      else if (it.cat.split(' | ').includes(q)) score = 0.5;   // nom exact de la catégorie (« club » -> les clubs)
+      else if (words.every(w => wordStart(it.cat, w))) score = 1;
+      else if (words.every(w => wordStart(tt, w))) score = 2;
+      else if (words.every(w => tt.includes(w))) score = 3;
+      else if (words.every(w => (tt + ' ' + it.cat + ' ' + it.meta).includes(w))) score = 4;
+      else score = 5;
       out.push([score, it]);
     }
     out.sort((a, b) => a[0] - b[0] || a[1].f.get('loc').t.localeCompare(b[1].f.get('loc').t, 'fr'));
@@ -1243,9 +1315,23 @@
     if (!q || q.length < 2) { placeBox.innerHTML = ''; return; }
     const res = searchPlaces(q);
     const zones = REGIONS.filter(r => norm(r.en + ' ' + (r.fr || '')).includes(q)).sort((a, b) => a.n - b.n).slice(0, 8);
-    const zonesHtml = zones.length ? `<div class="res-head">Zones : <b>${zones.length}</b></div>` + zones.map(r =>
+    // Catégories dont le nom correspond : en premier, avec « Voir sur la carte » pour n'afficher qu'elles
+    const words = q.split(/\s+/).filter(Boolean);
+    const cats = DATA.categories.map(c => {
+      const n = alias(norm(c.en + ' | ' + (c.fr || '')));
+      if (!words.every(w => n.includes(w))) return null;
+      const exact = n.split(' | ').includes(q);
+      return [exact ? 0 : words.every(w => wordStart(n, w)) ? 1 : 2, c];
+    }).filter(Boolean).sort((a, b) => a[0] - b[0] || (countByCat[b[1].id] || 0) - (countByCat[a[1].id] || 0)).slice(0, 6).map(x => x[1]);
+    const catsHtml = cats.length ? `<div class="res-head">Catégories : <b>${cats.length}</b></div>` + cats.map(c => {
+      const g = groups.find(x => x.id === c.group_id), col = groupColor[c.group_id];
+      return `<div class="mk res cat-res" data-focus="${c.id}">${badgeHtml(col, iconKeyOf(c))}
+        <div><div class="t">${esc(c.title)}</div><div class="s">${esc(g ? g.title : '')} · ${countByCat[c.id] || 0} lieux</div></div>
+        <span class="mini-btn see">Voir sur la carte</span></div>`;
+    }).join('') : '';
+    const zonesHtml = catsHtml + (zones.length ? `<div class="res-head">Zones : <b>${zones.length}</b></div>` : '') + zones.map(r =>
       `<div class="mk res zone" data-rid="${r.id}"><span class="badge zone-b">${iconHtml('landmark')}</span>
-        <div><div class="t">${esc(r.t)}</div><div class="s">${['', 'Comté', 'Ville ou zone', 'Quartier', 'Quartier'][r.n] || ''}</div></div></div>`).join('') : '';
+        <div><div class="t">${esc(r.t)}</div><div class="s">${['', 'Comté', 'Ville ou zone', 'Quartier', 'Quartier'][r.n] || ''}</div></div></div>`).join('');
     if (!res.length) { placeBox.innerHTML = zonesHtml + '<div class="res-head">Aucun lieu trouvé</div>'; return; }
     const shown = res.slice(0, MAX_RESULTS);
     placeBox.innerHTML = zonesHtml + `<div class="res-head">Lieux trouvés : <b>${res.length}</b></div>` +
@@ -1258,6 +1344,8 @@
       (listEl.querySelector('.grp:not(.hidden)') ? '<div class="res-head res-cats">Catégories</div>' : '');
   }
   placeBox.addEventListener('click', (e) => {
+    const fc = e.target.closest('[data-focus]');
+    if (fc) { focusCategory(+fc.dataset.focus); return; }
     const z = e.target.closest('.zone');
     if (z) { goToRegion(+z.dataset.rid); return; }
     const it = e.target.closest('.mk');
@@ -1270,7 +1358,7 @@
     const ext = ol.extent.boundingExtent(polys.flat(2));
     if (window.innerWidth <= 600) setSide(false);
     targetRes = null; closePopup();
-    view.fit(ext, { padding: [60, 60, 60, sideOpen() ? 340 : 60], duration: 500 });
+    view.fit(ext, { padding: [60, 60, 60, sideOpen() ? 390 : 60], duration: 500 });
   }
   let searchTimer = 0;
   searchEl.addEventListener('input', () => {
@@ -1318,6 +1406,27 @@
   map.addOverlay(popup);
 
   // Mise en forme minimale des descriptions Map Genie (gras, italique, listes, liens)
+  // Fiche : l'essentiel en haut (emplacement, montant, difficulté, modèle réel), le reste replié dans « Plus d'infos »
+  const ESSENTIEL = new Set(['location', 'legend', 'emplacement', 'take value', 'butin', 'sell value', 'valeur de revente',
+    'security', 'securite', 'access', 'acces', 'tracker', 'traceur', 'max payout', 'gain maximum', 'buy in', "droit d'entree",
+    'reward', 'recompense', 'price', 'prix', 'cost', 'cout', 'membership cost', "prix de l'abonnement", 'inspired by', 'inspire de',
+    'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
+  function descHtml(d) {
+    const top = [], more = [], foot = [];
+    let cur = top;
+    d.split(/\r?\n/).forEach(line => {
+      const s = line.trim();
+      if (/^_(Source|Photos?)\b/.test(s)) { foot.push(line); return; }   // crédit et légende des photos : toujours visibles, en bas
+      const m = s.match(/^\*\*([^*]+?)\s*:?\s*\*\*/);
+      if (m) cur = ESSENTIEL.has(norm(m[1]).replace(/\s*:$/, '').trim()) ? top : more;
+      cur.push(line);
+    });
+    const clean = (a) => a.join('\n').trim();
+    const t = clean(top), mo = clean(more), f = clean(foot);
+    return (t ? '<div class="desc">' + md(t) + '</div>' : '') +
+      (mo ? `<details class="more"><summary>Plus d'infos</summary><div class="desc">${md(mo)}</div></details>` : '') +
+      (f ? '<div class="desc desc-foot">' + md(f) + '</div>' : '');
+  }
   function md(text) {
     const lines = esc(text).split(/\r?\n/);
     const out = []; let inList = false;
@@ -1373,7 +1482,7 @@
       <button class="share-place" data-share="${l.id}">↗ Partager ce lieu</button>
       <div class="share-msg" aria-live="polite"></div>
       ${nearHtml(f)}
-      ${l.d ? '<div class="desc">' + md(l.d) + '</div>' : ''}
+      ${l.d ? descHtml(l.d) : ''}
     </div>`;
 
     const phone = isPhone();
@@ -1416,10 +1525,14 @@
       return;
     }
     popup.setPosition(shownCoord(f));
-    // Si la bulle sort de l'écran, on déplace la carte juste ce qu'il faut
-    setTimeout(() => {
+    setTimeout(keepPopupVisible, 80);
+  }
+  // Si la bulle sort de l'écran, on déplace la carte juste ce qu'il faut
+  function keepPopupVisible() {
+    if (popupEl.classList.contains('hidden') || isPhone()) return;
+    {
       const r = popupEl.getBoundingClientRect(), vw = window.innerWidth;
-      const sideW = sideOpen() ? 310 : 0;
+      const sideW = sideOpen() ? 340 : 0;
       let dx = 0, dy = 0;
       if (r.top < 14) dy = r.top - 14;
       if (r.left < sideW + 14) dx = r.left - (sideW + 14);
@@ -1428,8 +1541,10 @@
         const res = view.getResolution(), ctr = view.getCenter();
         view.animate({ center: [ctr[0] + dx * res, ctr[1] - dy * res], duration: 250 });
       }
-    }, 80);
+    }
   }
+  // « Plus d'infos » déplié : la bulle grandit vers le haut, on la garde à l'écran
+  popupEl.addEventListener('toggle', () => setTimeout(keepPopupVisible, 30), true);
   // Points affichés collés à celui-ci (moins de 8 px d'écran) : liste cliquable dans la fiche
   function nearby(f) {
     const res = view.getResolution(), c = f.getGeometry().getCoordinates(), r = 8 * res;
@@ -1637,6 +1752,8 @@
     return nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : null;
   }
   let cashItems = null, cashFilter = 'all', cashSort = 'value';
+  let focusLabel = '', focusKind = '';   // pastille en haut à droite : « Je veux du cash » ou une catégorie seule
+  const CASH_KEY = 'leonida.cash.v1';
   // Difficulté des braquages = sécurité indiquée par Map Genie (Low / Medium / High) ; plusieurs choix possibles
   // Difficulté, d'après les champs des fiches Map Genie. Une valeur hors de la liste (« ?? ») ne filtre jamais le lieu.
   const CASH_CRIT = {
@@ -1649,6 +1766,19 @@
   };
   const critOn = {};   // « genre|champ » -> valeurs choisies (toutes au départ)
   Object.entries(CASH_CRIT).forEach(([k, list]) => list.forEach(c => { critOn[k + '|' + c.key] = new Set(c.vals.map(v => v[0])); }));
+  // Tri, filtre et difficultés retenus d'une fois à l'autre
+  try {
+    const sv = JSON.parse(localStorage.getItem(CASH_KEY) || 'null');
+    if (sv) {
+      if (['value', 'dist'].includes(sv.sort)) cashSort = sv.sort;
+      if (CASH_KINDS.some(k => k[0] === sv.filter)) cashFilter = sv.filter;
+      Object.entries(sv.crit || {}).forEach(([k, vals]) => { if (critOn[k] && Array.isArray(vals) && vals.length) critOn[k] = new Set(vals); });
+    }
+  } catch (e) {}
+  const saveCash = () => {
+    const crit = {}; Object.entries(critOn).forEach(([k, v]) => { crit[k] = [...v]; });
+    try { localStorage.setItem(CASH_KEY, JSON.stringify({ sort: cashSort, filter: cashFilter, crit })); } catch (e) {}
+  };
   const fieldOf = (l, key) => { const m = (l.dEn || '').match(new RegExp('\\*\\*' + key + ':?\\*\\*:?\\s*([^\\n]*)')); return m ? m[1].trim() : null; };
   function critPass(it) {
     return (CASH_CRIT[it.kind] || []).every(c => {
@@ -1694,16 +1824,35 @@
           <span class="price">${val}</span></div>`;
       }).join('') : '<div class="empty">Rien dans cette catégorie.</div>');
     listEl.dataset.view = 'cash';
-    cashIds = new Set(items.map(it => it.l.id));
+    saveCash();
+    setFocus(new Set(items.map(it => it.l.id)), 'Je veux du cash', 'cash');
+  }
+  // La carte n'affiche qu'un ensemble de lieux (liste « Je veux du cash » ou une catégorie choisie dans la recherche)
+  function setFocus(ids, label, kind) {
+    cashIds = ids; focusLabel = label; focusKind = kind;
     refreshPoints(); syncCashBtn();
   }
-  // Fin de la recherche : retour aux catégories cochées
+  // Fin : retour aux catégories cochées
   function endCash() {
     if (!cashIds) return;
-    cashIds = null;
+    cashIds = null; focusKind = '';
     refreshPoints(); syncCashBtn();
   }
-  function syncCashBtn() { cashBtn.classList.toggle('on', !!cashIds); }
+  function syncCashBtn() {
+    cashBtn.classList.toggle('on', !!cashIds);
+    document.getElementById('focus-label').textContent = focusLabel + (cashIds ? ' · ' + cashIds.size : '');
+  }
+  // Une catégorie seule sur la carte (depuis la recherche)
+  function focusCategory(cid) {
+    const c = catById[cid]; if (!c) return;
+    const fs = allFeatures.filter(f => f.get('loc').c === cid);
+    if (listEl.dataset.view === 'cash') { delete listEl.dataset.view; rebuildCategoryList(); }
+    setFocus(new Set(fs.map(f => f.get('loc').id)), c.title, 'cat');
+    if (window.innerWidth <= 600) setSide(false);
+    closePopup(); targetRes = null;
+    if (fs.length) view.fit(ol.extent.boundingExtent(fs.map(f => f.getGeometry().getCoordinates())),
+      { padding: [80, 80, 80, sideOpen() ? 400 : 80], duration: 500, maxZoom: view.getZoomForResolution(resForZoom(4.6)) });
+  }
   listEl.addEventListener('click', (e) => {
     if (listEl.dataset.view !== 'cash') return;
     if (e.target.closest('[data-cash-back]')) { delete listEl.dataset.view; rebuildCategoryList(); endCash(); return; }
@@ -1728,11 +1877,31 @@
   }
   const cashBtn = document.getElementById('cash-btn');
   cashBtn.onclick = (e) => {
-    // La croix du bouton termine la recherche et réaffiche tous les points cochés
+    // La croix termine et réaffiche tous les points cochés ; le reste de la pastille rouvre la liste
     if (e.target.closest('.cash-x')) { if (listEl.dataset.view === 'cash') { delete listEl.dataset.view; rebuildCategoryList(); } endCash(); return; }
-    openCash();
+    if (focusKind === 'cash') openCash(); else setSide(true);
   };
-  cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCash(); } };
+  cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cashBtn.click(); } };
+  document.getElementById('cash-open').onclick = openCash;
+
+  // Crédits : pastille dépliable en bas du panneau
+  const creditsBtn = document.getElementById('credits-btn');
+  creditsBtn.onclick = () => {
+    const open = creditsBtn.getAttribute('aria-expanded') !== 'true';
+    creditsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.getElementById('credits').classList.toggle('hidden', !open);
+  };
+  // Affichage : replié ou ouvert (retenu), avec le nombre de réglages actifs
+  const dispEl = document.getElementById('disp');
+  const DISP_KEY = 'leonida.affichage-ouvert.v1';
+  try { dispEl.open = localStorage.getItem(DISP_KEY) === '1'; } catch (e) {}
+  dispEl.addEventListener('toggle', () => { try { localStorage.setItem(DISP_KEY, dispEl.open ? '1' : '0'); } catch (e) {} });
+  function syncDispSum() {
+    const ins = dispEl.querySelectorAll('input[type=checkbox]');
+    const on = [...ins].filter(i => i.checked).length;
+    document.getElementById('disp-sum').textContent = on === ins.length ? 'tout est affiché' : on + ' sur ' + ins.length;
+  }
+  dispEl.addEventListener('change', () => setTimeout(syncDispSum, 0));
 
   function goToFeature(f) {
     if (!f) return;
@@ -2034,7 +2203,7 @@
       popup.setPosition(coord);
       setTimeout(() => {
         const r = popupEl.getBoundingClientRect(), vw = window.innerWidth;
-        const sideW = sideOpen() ? 310 : 0;
+        const sideW = sideOpen() ? 340 : 0;
         let dx = 0, dy = 0;
         if (r.top < 14) dy = r.top - 14;
         if (r.left < sideW + 14) dx = r.left - (sideW + 14);
@@ -2168,8 +2337,16 @@
     new ol.style.Style({ image: new ol.style.Circle({ radius: 8, fill: new ol.style.Fill({ color: '#3b9cf6' }), stroke: new ol.style.Stroke({ color: '#ffffff', width: 3 }) }) })
   ] });
   map.addLayer(hereLayer);
+  const meBtn = document.getElementById('me-btn');
+  meBtn.onclick = () => {
+    if (!here) return;
+    targetRes = null;
+    view.animate({ center: [here.x, -here.y], resolution: Math.min(view.getResolution(), resForZoom(4)), duration: 450 });
+  };
+  meBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); meBtn.click(); } };
   function setHere(p) {
     here = p;
+    meBtn.classList.toggle('hidden', !p);
     try { if (p) localStorage.setItem(HERE_KEY, JSON.stringify({ x: Math.round(p.x), y: Math.round(p.y) })); else localStorage.removeItem(HERE_KEY); } catch (e) {}
     hereSource.clear();
     if (here) hereSource.addFeature(new ol.Feature(new ol.geom.Point([here.x, -here.y])));
@@ -2268,6 +2445,7 @@
   buildPanel();
   listEl.prepend(placeBox);
   refreshPoints();
+  syncDispSum();
 
   rebuildView(true);   // limites de zoom adaptées à la fenêtre + dernière vue (ou vue d'ensemble)
   setTimeout(handleHash, 0);   // lien vers un lieu ou marques partagées

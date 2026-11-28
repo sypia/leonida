@@ -22,7 +22,17 @@ window.TRAD_FR = (function () {
     'Racing': 'Courses',
     'Illegal Operations': 'Opérations illégales',
     'Story & Secrets': 'Histoire et secrets',
-    'Landmarks & Buildings': 'Lieux et bâtiments'
+    'Landmarks & Buildings': 'Lieux et bâtiments',
+    'Food & Nightlife': 'Manger et sortir',
+    'Shops': 'Boutiques',
+    'Getting Around': 'Se déplacer',
+    'Services': 'Services',
+    'Activities & Sports': 'Activités et sport',
+    'Races & Stunts': 'Courses et cascades',
+    'Collectibles': 'Objets à collectionner',
+    'Vehicles to Steal': 'Véhicules à voler',
+    'Money & Robberies': 'Argent et braquages',
+    'Other': 'Autres'
   };
 
   const categories = {
@@ -166,7 +176,10 @@ window.TRAD_FR = (function () {
     'Leisure & Landmark': 'Loisirs et monuments',
     'Nature': 'Nature',
     'Building': 'Bâtiment',
-    'Scoop Container': 'Conteneur Scoop'
+    'Scoop Container': 'Conteneur Scoop',
+    'Restaurant': 'Restaurant',
+    'Other Shop': 'Autre magasin',
+    'Bridges & Stations': 'Ponts, gares et aéroports'
   };
 
   // Zones : on ne traduit que les mots génériques, les noms restent tels quels

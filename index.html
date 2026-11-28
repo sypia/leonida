@@ -153,6 +153,19 @@
     display: grid; place-items: center;
   }
   .cat.on .box { border-color: transparent; }
+  /* Sous-menu d'une catégorie isolée */
+  .cat.sub-open { background: rgba(76, 201, 240, 0.1); }
+  .cat-sub { margin: 2px 0 8px 26px; padding: 6px 6px 4px; border-left: 2px solid rgba(76, 201, 240, 0.45); }
+  .sub-seg { margin-bottom: 4px; }
+  .sub-from { font-size: 10.5px; color: var(--muted); margin: 0 2px 3px; }
+  .sub-from:empty { display: none; }
+  .sub-it { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+  .sub-it:hover { background: rgba(255, 255, 255, 0.06); }
+  .sub-it .t { font-size: 12.5px; }
+  .sub-it .s { font-size: 11px; color: var(--muted); }
+  .sub-it .v { margin-left: auto; padding-left: 8px; font-size: 11.5px; font-weight: 700; color: #8fd3f0; white-space: nowrap; }
+  .sub-it .v .none { color: var(--muted); font-weight: 500; }
+  .sub-more { margin: 4px 6px 2px; border: 1px solid rgba(255, 255, 255, 0.16); background: transparent; color: var(--muted); border-radius: 7px; padding: 4px 9px; font: inherit; font-size: 11.5px; cursor: pointer; }
   /* La case seule ajoute ou retire la catégorie : zone de clic agrandie, surtout pour le doigt */
   .cat .box { position: relative; }
   .cat .box::after { content: ''; position: absolute; inset: -9px -8px -9px -14px; }
@@ -1322,6 +1335,7 @@
     syncChecks();
   }
   function syncChecks() {
+    if (subCat != null && !(enabled.size === 1 && enabled.has(subCat))) closeSub();
     listEl.querySelectorAll('.cat').forEach(el => {
       const id = +el.dataset.c, on = enabled.has(id);
       el.classList.toggle('on', on);
@@ -1378,16 +1392,77 @@
         enabled.has(id) ? enabled.delete(id) : enabled.add(id);
       } else if (enabled.size === 1 && enabled.has(id) && soloPrev) {
         // Deuxième clic sur le nom de la catégorie déjà seule : retour à la sélection d'avant
-        enabled = new Set(soloPrev); soloPrev = null;
+        enabled = new Set(soloPrev); soloPrev = null; closeSub();
       } else {
         // Le nom : n'affiche que cette catégorie (la sélection d'avant reste en mémoire pour « Revenir »)
-        if (!(enabled.size === 1 && enabled.has(id))) soloPrev = new Set(enabled);
+        // et déplie la liste de ses lieux juste en dessous
+        // D'une catégorie seule à une autre : on garde la sélection de départ pour « Revenir »
+        if (!(enabled.size === 1 && (enabled.has(id) || soloPrev))) soloPrev = new Set(enabled);
         enabled = new Set([id]);
+        openSub(id);
       }
       saveEnabled(); syncChecks(); refreshPoints();
     }
   });
   let soloPrev = null;
+
+  // --- Sous-menu d'une catégorie isolée : ses lieux, du plus proche au plus loin, ou triés par gain, prix ou valeur ---
+  let subCat = null, subLimit = 30;
+  const subSort = {};
+  const priceRubOf = (l) => { const m = (l.dEn || '').match(/\*\*Price:?\*\*:?\s*\$?([\d,]+)/); return m ? +m[1].replace(/,/g, '') : null; };
+  function subSortsFor(c, its) {
+    const out = [['dist', 'Distance']], k = cashKindOf(c);
+    if (k && its.some(it => cashOf(it.l, k))) out.push(['gain', k === 'course' ? 'Gain' : k === 'vehicule' ? 'Revente' : 'Butin']);
+    if (its.some(it => priceRubOf(it.l) != null)) out.push(['price', 'Prix']);
+    if (k !== 'vehicule' && its.some(it => priceOf(it.l) != null)) out.push(['value', 'Valeur']);
+    return out;
+  }
+  function closeSub() { subCat = null; const el = listEl.querySelector('.cat-sub'); if (el) el.remove(); listEl.querySelectorAll('.cat.sub-open').forEach(x => x.classList.remove('sub-open')); }
+  function openSub(id) { subCat = id; subLimit = 30; renderSub(); }
+  function renderSub() {
+    const old = listEl.querySelector('.cat-sub'); if (old) old.remove();
+    listEl.querySelectorAll('.cat.sub-open').forEach(x => x.classList.remove('sub-open'));
+    const row = subCat != null && listEl.querySelector('.cat[data-c="' + subCat + '"]');
+    if (!row) return;
+    const c = catById[subCat], k = cashKindOf(c);
+    const here = herePos();
+    const from = here || (() => { const ctr = view.getCenter(); return { x: ctr[0], y: -ctr[1] }; })();
+    const its = allFeatures.filter(f => f.get('loc').c === subCat && !spoiler(f.get('loc').id))
+      .map(f => { const l = f.get('loc'); return { f, l, d: Math.hypot(l.x - from.x, l.y - from.y) }; });
+    const sorts = subSortsFor(c, its);
+    let srt = subSort[subCat]; if (!sorts.some(x => x[0] === srt)) srt = 'dist';
+    const val = (it) => srt === 'gain' ? (cashOf(it.l, k) || {}).max : srt === 'price' ? priceRubOf(it.l) : srt === 'value' ? priceOf(it.l) : null;
+    its.sort((a, b) => {
+      if (srt === 'dist') return a.d - b.d;
+      const va = val(a), vb = val(b);
+      if ((va == null) !== (vb == null)) return va == null ? 1 : -1;   // sans montant : à la fin
+      return (srt === 'price' ? va - vb : vb - va) || a.d - b.d;       // prix : le moins cher d'abord
+    });
+    const right = (it) => {
+      if (srt === 'gain') { const v = cashOf(it.l, k); return v ? (v.min !== v.max ? money(v.min) + ' à ' + v.max.toLocaleString('fr-CH') : money(v.max)) : '<span class="none">?</span>'; }
+      if (srt === 'price' || srt === 'value') { const v = val(it); return v != null ? money(v) : '<span class="none">?</span>'; }
+      return distTxt(it.d);
+    };
+    const sub = document.createElement('div');
+    sub.className = 'cat-sub';
+    sub.innerHTML = (sorts.length > 1 ? `<div class="seg sub-seg">${sorts.map(([key, t]) => `<button data-sub-sort="${key}" class="${key === srt ? 'sel' : ''}">${t}</button>`).join('')}</div>` : '') +
+      `<div class="sub-from">${srt === 'dist' ? (here ? 'Depuis ta position' : 'Depuis le centre de la carte') : ''}</div>` +
+      its.slice(0, subLimit).map(it => {
+        const r = regionById[it.l.r], done = markOf(it.l.id).st === 'done';
+        return `<div class="sub-it${done ? ' done-cash' : ''}" data-sub-id="${it.l.id}"><div><div class="t">${done ? '✓ ' : ''}${esc(it.l.t)}</div><div class="s">${esc(r || '')}${srt !== 'dist' ? (r ? ' · ' : '') + distTxt(it.d) : ''}</div></div><span class="v">${right(it)}</span></div>`;
+      }).join('') +
+      (its.length > subLimit ? `<button class="sub-more" data-sub-more>Voir les ${Math.min(30, its.length - subLimit)} suivants (${its.length - subLimit} de plus)</button>` : '');
+    row.classList.add('sub-open');
+    row.after(sub);
+  }
+  listEl.addEventListener('click', (e) => {
+    if (listEl.dataset.view) return;
+    const so = e.target.closest('[data-sub-sort]');
+    if (so) { subSort[subCat] = so.dataset.subSort; subLimit = 30; renderSub(); return; }
+    if (e.target.closest('[data-sub-more]')) { subLimit += 30; renderSub(); return; }
+    const it = e.target.closest('[data-sub-id]');
+    if (it) goToFeature(byId[it.dataset.subId]);
+  });
   document.getElementById('all-on').onclick = () => { soloPrev = null; DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
   document.getElementById('all-off').onclick = () => { DATA.categories.forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
   const foldBtn = document.getElementById('fold-all');
@@ -1513,6 +1588,7 @@
   }
   let searchTimer = 0;
   searchEl.addEventListener('input', () => {
+    closeSub();
     const q = norm(searchEl.value.trim());
     listEl.querySelectorAll('.grp').forEach(g => {
       let any = false;

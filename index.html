@@ -1639,7 +1639,7 @@
       alertMsg('Ce fichier n\'est pas un export de marques valide.');
     }
   };
-  function alertMsg(t) { document.getElementById('mode-title').innerHTML = MODE_TITLES[mode] + ' · ' + esc(t); }
+  function alertMsg(t) { document.getElementById('mode-title').innerHTML = (MODE_TITLES[mode] ? MODE_TITLES[mode] + ' · ' : '') + esc(t); }
 
   // --- Dernière vue : position et zoom mémorisés dans le navigateur ---
   const VIEW_KEY = 'leonida.vue.v1';

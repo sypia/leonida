@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128181945">
+<meta name="leonida-version" content="20261128182242">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128181945">
+<link rel="stylesheet" href="lib/ol.css?v=20261128182242">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -454,11 +454,13 @@
     /* Téléphone : panneau en plein écran ; le bouton réduit à la flèche reste en bas à gauche pour le fermer */
     .side {
       /* Le menu commence sous l'heure et la batterie : la carte reste visible dans la barre d'état */
-      left: 0; top: env(safe-area-inset-top); bottom: 0; width: 100vw; border-radius: 14px 14px 0 0; box-shadow: none;
+      /* Le menu commence sous le flou qu'iOS dessine derrière l'heure et la batterie */
+      left: 0; top: calc(env(safe-area-inset-top) + 24px); bottom: 0; width: 100vw; border-radius: 14px 14px 0 0; box-shadow: none;
       background: rgba(16, 24, 31, 0.97);
-      padding-bottom: env(safe-area-inset-bottom);
     }
-    .side-toggle { top: auto; left: auto; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+    /* Bas de l'écran : la flèche et « Crédits » sur une même ligne, juste au-dessus de la barre d'accueil */
+    .side { --sb: max(14px, calc(env(safe-area-inset-bottom) - 12px)); }
+    .side-toggle { top: auto; left: auto; right: 14px; bottom: max(14px, calc(env(safe-area-inset-bottom) - 12px)); }
     body:not(.side-closed) .side-toggle { background: var(--panel); }
     .side-toggle svg { transform: rotate(180deg); }
     body.side-closed .side-toggle svg { transform: none; }
@@ -466,8 +468,8 @@
     .side-head { padding-left: 14px; }
     .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
     .quick { width: 100%; }
-    .me-btn { bottom: calc(70px + env(safe-area-inset-bottom)); }   /* au-dessus du bouton du menu */
-    .side-foot { padding-right: 72px; }   /* laisse la place au bouton flèche, en bas à droite */
+    .me-btn { bottom: calc(max(14px, calc(env(safe-area-inset-bottom) - 12px)) + 56px); }   /* au-dessus du bouton du menu */
+    .side-foot { border-top: 0; padding: 6px 72px calc(var(--sb) + 9px) 14px; }   /* « Crédits » centré sur la flèche, à sa gauche */
     .popup { width: min(300px, 86vw); }
     .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
     .popup .pin-hint { display: none; }
@@ -567,22 +569,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128181945"></script>
-<script src="donnees/points_mapgenie.js?v=20261128181945"></script>
-<script src="lib/icones.js?v=20261128181945"></script>
-<script src="donnees/points_dexerto.js?v=20261128181945"></script>
-<script src="donnees/points_gtadb.js?v=20261128181945"></script>
-<script src="donnees/points_scoop.js?v=20261128181945"></script>
-<script src="donnees/niadb.js?v=20261128181945"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128181945"></script>
-<script src="donnees/planques_argent.js?v=20261128181945"></script>
-<script src="donnees/doublons.js?v=20261128181945"></script>
-<script src="donnees/corrections.js?v=20261128181945"></script>
-<script src="donnees/organisation.js?v=20261128181945"></script>
-<script src="donnees/regions.js?v=20261128181945"></script>
-<script src="donnees/eaux.js?v=20261128181945"></script>
-<script src="donnees/traduction_fr.js?v=20261128181945"></script>
-<script src="donnees/lieux_fr.js?v=20261128181945"></script>
+<script src="lib/ol.js?v=20261128182242"></script>
+<script src="donnees/points_mapgenie.js?v=20261128182242"></script>
+<script src="lib/icones.js?v=20261128182242"></script>
+<script src="donnees/points_dexerto.js?v=20261128182242"></script>
+<script src="donnees/points_gtadb.js?v=20261128182242"></script>
+<script src="donnees/points_scoop.js?v=20261128182242"></script>
+<script src="donnees/niadb.js?v=20261128182242"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128182242"></script>
+<script src="donnees/planques_argent.js?v=20261128182242"></script>
+<script src="donnees/doublons.js?v=20261128182242"></script>
+<script src="donnees/corrections.js?v=20261128182242"></script>
+<script src="donnees/organisation.js?v=20261128182242"></script>
+<script src="donnees/regions.js?v=20261128182242"></script>
+<script src="donnees/eaux.js?v=20261128182242"></script>
+<script src="donnees/traduction_fr.js?v=20261128182242"></script>
+<script src="donnees/lieux_fr.js?v=20261128182242"></script>
 <script>
 (function () {
   'use strict';

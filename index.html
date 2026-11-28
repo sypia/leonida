@@ -59,10 +59,9 @@
   .qx { display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 800; opacity: 0.8; }
   .cash-main.on .qx, .quick-b.on .qx { display: block; }
   .side[data-menu] #tabs, .side[data-menu] #disp, .side[data-menu] #tools-all, .side[data-menu] #side-count { display: none; }
-  .side[data-menu="cash"] .quick-row { display: none; }
-  .side[data-menu="veh"] #cash-open, .side[data-menu="veh"] #dice { display: none; }
-  .side[data-menu="veh"] .quick-row { margin-top: 0; }
-  .side[data-menu="veh"] #veh-open { height: 40px; font-size: 14px; }
+  .side[data-menu] #dice, .side[data-menu="cash"] #veh-open, .side[data-menu="veh"] #cash-open { display: none; }
+  .side[data-menu] .quick-row { margin-top: 0; }
+  .side[data-menu] .quick-row > button { height: 40px; font-size: 14px; }
   .side[data-menu] .quick { margin-top: 14px; }
   .qn:not(:empty)::before { content: '· '; }
   .cb-line { line-height: 1.5; }
@@ -78,6 +77,10 @@
   .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 40px;
     border: 0; border-radius: 10px; background: rgba(47, 191, 113, 0.9); color: #06281a; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
   .cash-main:hover { background: rgba(47, 191, 113, 1); }
+  .quick-row .cash-main { flex: 1; width: auto; height: 34px; font-size: 12.5px; gap: 6px; }
+  .quick-row .cash-main svg { width: 16px; height: 16px; }
+  .dice-main { width: 100%; height: 40px; font-size: 14px; }
+  .dice-main svg { width: 19px; height: 19px; }
   .cash-main svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
   /* Réglages d'affichage, repliables */
   .disp { margin-top: 10px; border-radius: 9px; background: rgba(0, 0, 0, 0.22); }
@@ -141,8 +144,10 @@
   .grp.collapsed .chev { transform: rotate(-90deg); }
   .grp-head .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35); }
   .grp-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .grp-head .tog { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; padding: 2px 6px; border-radius: 5px; }
-  .grp-head .tog:hover { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+  .grp-head .chev-b { display: grid; place-items: center; width: 26px; height: 26px; margin: -6px -4px -6px -8px; border-radius: 6px; flex: none; }
+  .grp-head .chev-b:hover { background: rgba(255, 255, 255, 0.12); }
+  .grp-head .gn { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; }
+  .grp:not(.grp-on) .grp-head .name { color: var(--muted); }
   .grp.collapsed .cats { display: none; }
   .cat {
     display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 26px; border-radius: 6px; cursor: pointer;
@@ -487,10 +492,10 @@
       <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
     <div class="quick" id="quick">
-      <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
+      <button class="quick-b dice-main" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
       <div class="quick-row">
+        <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
         <button class="quick-b" id="veh-open" title="Véhicules à voler, triés par vitesse, accélération, tenue de route… Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M5 16h14M6 16l1.5-5h9L18 16M4 16v3h3v-3M17 16v3h3v-3M8.5 13.5h0.01M15.5 13.5h0.01"/></svg><span>Véhicules</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
-        <button class="quick-b" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
       </div>
     </div>
     <details class="disp" id="disp">
@@ -524,7 +529,7 @@
       <div class="side-tools">
         <button id="all-on">Tout afficher</button>
         <button id="all-off">Tout masquer</button>
-        <button id="fold-all">Replier</button>
+        <button id="fold-all">Déplier</button>
       </div>
     </div>
     <div id="tools-marks" class="hidden">
@@ -1320,10 +1325,10 @@
       const col = groupColor[g.id];
       const cats = g.cats.map(id => catById[id]).filter(Boolean).sort((a, b) => a.order - b.order);
       if (!cats.length) continue;
-      html.push(`<div class="grp" data-g="${g.id}">
-        <div class="grp-head"><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
-        <span class="dot" style="background:${col}"></span><span class="name">${esc(g.title)}</span>
-        <span class="tog" data-tog="${g.id}">tout / rien</span></div><div class="cats">`);
+      html.push(`<div class="grp collapsed" data-g="${g.id}">
+        <div class="grp-head"><span class="chev-b" data-fold title="Ouvrir ou fermer, sans changer ce qui est affiché"><svg class="chev" viewBox="0 0 10 10"><path d="M2 3.5l3 3 3-3" stroke="currentColor" fill="none" stroke-width="1.5"/></svg></span>
+        <span class="dot" style="background:${col}"></span><span class="name" title="N'afficher que ce groupe">${esc(g.title)}</span>
+        <span class="gn" data-gn="${g.id}"></span></div><div class="cats">`);
       for (const c of cats) {
         html.push(`<div class="cat" data-c="${c.id}" data-name="${esc([c.en, c.fr || '', g.en, g.fr || ''].join(' ').toLowerCase())}">
           <span class="box" style="--col:${col}">${CHECK}</span><span class="ico" style="color:${col}">${iconHtml(iconKeyOf(c))}</span><span class="label">${esc(c.title)}</span>${PRICE_CATS.has(c.en) ? '<span class="price-btn" data-price="' + c.id + '" title="Trier par prix de revente">$ ↓</span>' : ''}<span class="n">${countByCat[c.id] || 0}</span></div>`);
@@ -1336,6 +1341,11 @@
   }
   function syncChecks() {
     if (subCat != null && !(enabled.size === 1 && enabled.has(subCat))) closeSub();
+    listEl.querySelectorAll('[data-gn]').forEach(el => {
+      const g = groups.find(x => x.id === +el.dataset.gn), ids = g.cats.filter(id => catById[id]), n = ids.filter(id => enabled.has(id)).length;
+      el.textContent = n === ids.length ? 'tout' : n ? n + ' / ' + ids.length : '';
+      el.closest('.grp').classList.toggle('grp-on', n > 0);
+    });
     listEl.querySelectorAll('.cat').forEach(el => {
       const id = +el.dataset.c, on = enabled.has(id);
       el.classList.toggle('on', on);
@@ -1365,25 +1375,34 @@
     const all = '';   // « Tout afficher » est déjà juste au-dessus
     if (n === total) return `<div class="cb-line">${pts} · toutes les catégories</div>`;
     if (n === 0) return `<div class="cb-line">Aucune catégorie affichée</div>`;
+    const gs = groupSolo();
+    if (gs) return `<div class="cb-line">${pts} · seulement le groupe « ${esc(gs.title)} »</div>${back ? '<div class="cb-chips">' + back + '</div>' : ''}`;
     if (n <= 8) return `<div class="cb-line">${pts} · affiché :</div><div class="cb-chips">${[...enabled].map(id => chip(id, '✕', 'Enlever de la carte')).join('')}${back}${all}</div>`;
     const off = DATA.categories.filter(c => !enabled.has(c.id));
     if (off.length <= 8) return `<div class="cb-line">${pts} · masqué :</div><div class="cb-chips">${off.map(c => chip(c.id, '+', 'Remettre sur la carte')).join('')}${back}${all}</div>`;
     return `<div class="cb-line">${pts} · ${n} catégories sur ${total}</div>${back ? '<div class="cb-chips">' + back + '</div>' : ''}`;
   }
   listEl.addEventListener('click', (e) => {
-    const tog = e.target.closest('[data-tog]');
-    if (tog) {
-      e.stopPropagation();
-      const g = groups.find(x => x.id === +tog.dataset.tog);
-      const ids = g.cats;
-      const allOn = ids.every(id => enabled.has(id));
-      ids.forEach(id => allOn ? enabled.delete(id) : enabled.add(id));
-      saveEnabled(); syncChecks(); refreshPoints(); return;
-    }
+    const fold = e.target.closest('[data-fold]');
+    if (fold) { fold.closest('.grp').classList.toggle('collapsed'); syncFoldBtn(); return; }
     const pb = e.target.closest('[data-price]');
     if (pb) { e.stopPropagation(); openVeh('value'); return; }
     const head = e.target.closest('.grp-head');
-    if (head) { head.parentElement.classList.toggle('collapsed'); return; }
+    if (head) {
+      // Le nom du groupe : n'affiche que ce groupe et l'ouvre ; second clic : retour à la sélection d'avant
+      const grp = head.parentElement, g = groups.find(x => x.id === +grp.dataset.g);
+      const ids = g.cats.filter(id => catById[id]);
+      const solo = enabled.size === ids.length && ids.every(id => enabled.has(id));
+      closeSub();
+      if (solo) {
+        enabled = soloPrev ? new Set(soloPrev) : new Set(); soloPrev = null;
+      } else {
+        if (!(soloPrev && (enabled.size === 1 || isGroupSolo()))) soloPrev = new Set(enabled);
+        enabled = new Set(ids);
+        grp.classList.remove('collapsed'); syncFoldBtn();
+      }
+      saveEnabled(); syncChecks(); refreshPoints(); return;
+    }
     const cat = e.target.closest('.cat');
     if (cat) {
       const id = +cat.dataset.c;
@@ -1397,7 +1416,7 @@
         // Le nom : n'affiche que cette catégorie (la sélection d'avant reste en mémoire pour « Revenir »)
         // et déplie la liste de ses lieux juste en dessous
         // D'une catégorie seule à une autre : on garde la sélection de départ pour « Revenir »
-        if (!(enabled.size === 1 && (enabled.has(id) || soloPrev))) soloPrev = new Set(enabled);
+        if (!((enabled.size === 1 || isGroupSolo()) && (enabled.has(id) || soloPrev))) soloPrev = new Set(enabled);
         enabled = new Set([id]);
         openSub(id);
       }
@@ -1405,6 +1424,15 @@
     }
   });
   let soloPrev = null;
+  // Le groupe dont toutes les catégories, et elles seules, sont affichées
+  function groupSolo() {
+    return groups.find(g => { const ids = g.cats.filter(id => catById[id]); return ids.length > 1 && enabled.size === ids.length && ids.every(id => enabled.has(id)); }) || null;
+  }
+  const isGroupSolo = () => !!groupSolo();
+  function syncFoldBtn() {
+    const b = document.getElementById('fold-all'); if (!b) return;
+    b.textContent = [...listEl.querySelectorAll('.grp')].some(g => !g.classList.contains('collapsed')) ? 'Replier' : 'Déplier';
+  }
 
   // --- Sous-menu d'une catégorie isolée : ses lieux, du plus proche au plus loin, ou triés par gain, prix ou valeur ---
   let subCat = null, subLimit = 30;
@@ -1470,7 +1498,7 @@
     const grps = listEl.querySelectorAll('.grp');
     const fold = [...grps].some(g => !g.classList.contains('collapsed'));
     grps.forEach(g => g.classList.toggle('collapsed', fold));
-    foldBtn.textContent = fold ? 'Déplier' : 'Replier';
+    syncFoldBtn();
   };
   // --- Recherche : catégories ET lieux (nom, région, catégorie, description) ---
   // Sans accents ni majuscules ; tous les mots tapés doivent être trouvés.
@@ -1981,10 +2009,10 @@
   // Si sa catégorie était masquée, on la ré-affiche pour que le point soit visible.
   // Liste des catégories reconstruite (après le tri par prix)
   function rebuildCategoryList() {
-    const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
+    const opened = [...listEl.querySelectorAll('.grp:not(.collapsed)')].map(g => g.dataset.g);
     buildPanel();
     listEl.prepend(placeBox);
-    folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
+    opened.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.remove('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
     endCash();
   }
@@ -2876,11 +2904,11 @@
     try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
     applyLangData();
     searchIndex = null;
-    const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
+    const opened = [...listEl.querySelectorAll('.grp:not(.collapsed)')].map(g => g.dataset.g);
     const wasCash = listEl.dataset.view === 'cash', wasVeh = listEl.dataset.view === 'veh';
     buildPanel();
     listEl.prepend(placeBox);
-    folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
+    opened.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.remove('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
     if (wasCash) showCashList();
     if (wasVeh) showVehList();

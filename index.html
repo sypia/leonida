@@ -143,6 +143,10 @@
     font-size: 13px; font-weight: 700; cursor: pointer; color: #7ee2a8;
   }
   .cash-btn:hover { background: var(--panel-hover); }
+  .cash-btn .cash-x { display: none; place-items: center; width: 26px; height: 26px; margin: 0 -6px 0 2px; border-radius: 13px; background: rgba(255, 255, 255, 0.12); color: var(--text); }
+  .cash-btn .cash-x svg { width: 14px; height: 14px; stroke-width: 2.6; }
+  .cash-btn.on { background: rgba(47, 191, 113, 0.92); color: #06281a; }
+  .cash-btn.on .cash-x { display: grid; background: rgba(0, 0, 0, 0.18); color: #06281a; }
   .cash-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   .price-filter .pf-lab { align-self: center; color: var(--muted); font-size: 11px; margin-right: 2px; }
   .cash-note { margin: 0 6px 8px; padding: 7px 9px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); color: var(--muted); font-size: 11.5px; line-height: 1.35; }
@@ -333,7 +337,7 @@
 <body class="side-closed">
 <div id="map" tabindex="0"></div>
 <div class="panel cash-btn" id="cash-btn" role="button" tabindex="0" title="Lieux et activités qui rapportent, triés par gain ou par distance">
-  <svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span>
+  <svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><span class="cash-x" title="Terminer : réafficher tous les points" aria-label="Terminer la recherche"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>
 </div>
 
 <div class="panel side closed" id="side">
@@ -804,10 +808,12 @@
   const PRICE_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
 
   const pointSource = new ol.source.Vector();
+  let cashIds = null;   // lieux de la liste « Je veux du cash » : quand elle est ouverte, la carte n'affiche qu'eux
   function refreshPoints() {
     pointSource.clear(true);
     let list;
-    if (mode === 'all') list = allFeatures.filter(f => { const l = f.get('loc'); return enabled.has(l.c) && !hiddenByMarks(l.id); });
+    if (mode === 'all' && cashIds) list = allFeatures.filter(f => { const l = f.get('loc'); return cashIds.has(l.id) && !hiddenByMarks(l.id); });   // « Je veux du cash » : seulement les lieux de la liste
+    else if (mode === 'all') list = allFeatures.filter(f => { const l = f.get('loc'); return enabled.has(l.c) && !hiddenByMarks(l.id); });
     else list = allFeatures.filter(f => hasMark(f.get('loc').id, mode));
     pointSource.addFeatures(list);
     updateCounts();
@@ -1154,7 +1160,8 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
+    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement ceux de « Je veux du cash »`;
+    else if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
     for (const id in marks) { const m = marks[id]; if (m.fav) n.fav++; if (m.st) n[m.st]++; }
@@ -1573,6 +1580,7 @@
     listEl.prepend(placeBox);
     folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
+    endCash();
   }
 
   // --- Véhicules triés par prix de revente ---
@@ -1661,10 +1669,19 @@
           <span class="price">${val}</span></div>`;
       }).join('') : '<div class="empty">Rien dans cette catégorie.</div>');
     listEl.dataset.view = 'cash';
+    cashIds = new Set(items.map(it => it.l.id));
+    refreshPoints(); syncCashBtn();
   }
+  // Fin de la recherche : retour aux catégories cochées
+  function endCash() {
+    if (!cashIds) return;
+    cashIds = null;
+    refreshPoints(); syncCashBtn();
+  }
+  function syncCashBtn() { cashBtn.classList.toggle('on', !!cashIds); }
   listEl.addEventListener('click', (e) => {
     if (listEl.dataset.view !== 'cash') return;
-    if (e.target.closest('[data-cash-back]')) { delete listEl.dataset.view; rebuildCategoryList(); return; }
+    if (e.target.closest('[data-cash-back]')) { delete listEl.dataset.view; rebuildCategoryList(); endCash(); return; }
     const cs = e.target.closest('[data-cs]');
     if (cs) { cashSort = cs.dataset.cs; showCashList(); return; }
     const cf = e.target.closest('[data-cf]');
@@ -1685,13 +1702,17 @@
     listEl.scrollTop = 0;
   }
   const cashBtn = document.getElementById('cash-btn');
-  cashBtn.onclick = openCash;
+  cashBtn.onclick = (e) => {
+    // La croix du bouton termine la recherche et réaffiche tous les points cochés
+    if (e.target.closest('.cash-x')) { if (listEl.dataset.view === 'cash') { delete listEl.dataset.view; rebuildCategoryList(); } endCash(); return; }
+    openCash();
+  };
   cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCash(); } };
 
   function goToFeature(f) {
     if (!f) return;
     const l = f.get('loc');
-    if (mode === 'all' && !enabled.has(l.c)) { enabled.add(l.c); saveEnabled(); syncChecks(); refreshPoints(); }
+    if (mode === 'all' && !cashIds && !enabled.has(l.c)) { enabled.add(l.c); saveEnabled(); syncChecks(); refreshPoints(); }
     if (window.innerWidth <= 600) setSide(false);   // sur téléphone, on libère la carte
     targetRes = null;
     const res = Math.min(view.getResolution(), resForZoom(4.6));
@@ -2205,10 +2226,12 @@
     applyLangData();
     searchIndex = null;
     const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
+    const wasCash = listEl.dataset.view === 'cash';
     buildPanel();
     listEl.prepend(placeBox);
     folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
+    if (wasCash) showCashList();
     labelLayer.changed();
     if (mode !== 'all') renderMarksList();
     if (popupFeature) openPopup(popupFeature);

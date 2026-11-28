@@ -1637,9 +1637,27 @@
   }
   let cashItems = null, cashFilter = 'all', cashSort = 'value';
   // Difficulté des braquages = sécurité indiquée par Map Genie (Low / Medium / High) ; plusieurs choix possibles
-  const SECU = [['Low', 'Faible'], ['Medium', 'Moyenne'], ['High', 'Élevée']];
-  const secuOn = new Set(SECU.map(x => x[0]));
-  const secuOf = (l) => { const m = (l.dEn || '').match(/\*\*Security:?\*\*:?\s*([^\n]*)/); return m ? m[1].trim() : null; };
+  // Difficulté, d'après les champs des fiches Map Genie. Une valeur hors de la liste (« ?? ») ne filtre jamais le lieu.
+  const CASH_CRIT = {
+    braquage: [{ key: 'Security', lab: 'Sécurité', vals: [['Low', 'Faible'], ['Medium', 'Moyenne'], ['High', 'Élevée']] }],
+    vehicule: [
+      { key: 'Access', lab: 'Accès', vals: [['Unlocked', 'Ouvert'], ['Locked', 'Verrouillé'], ['Key Cloner', 'Cloneur de clés']] },
+      { key: 'Security', lab: 'Alarme', vals: [['None', 'Aucune', 'sans alarme'], ['Deactivated', 'Désactivée'], ['Alarmed', 'Active']] },
+      { key: 'Tracker', lab: 'Traceur', vals: [['None', 'Aucun', 'sans traceur'], ['Standard', 'Standard'], ['Advanced', 'Avancé']] }
+    ]
+  };
+  const critOn = {};   // « genre|champ » -> valeurs choisies (toutes au départ)
+  Object.entries(CASH_CRIT).forEach(([k, list]) => list.forEach(c => { critOn[k + '|' + c.key] = new Set(c.vals.map(v => v[0])); }));
+  const fieldOf = (l, key) => { const m = (l.dEn || '').match(new RegExp('\\*\\*' + key + ':?\\*\\*:?\\s*([^\\n]*)')); return m ? m[1].trim() : null; };
+  function critPass(it) {
+    return (CASH_CRIT[it.kind] || []).every(c => {
+      const v = it.crit[c.key];
+      return !v || !c.vals.some(x => x[0] === v) || critOn[it.kind + '|' + c.key].has(v);
+    });
+  }
+  function critText(it) {
+    return (CASH_CRIT[it.kind] || []).map(c => { const x = c.vals.find(x => x[0] === it.crit[c.key]); return x ? (x[2] || c.lab.toLowerCase() + ' ' + x[1].toLowerCase()) : ''; }).filter(Boolean).join(' · ');
+  }
   const money = (n) => '$' + n.toLocaleString('fr-CH');
   // 1 px de carte (zoom 6) = 0,5 m dans le jeu (coordonnées gtadb.org, en mètres)
   const distTxt = (px) => { const m = px / 2; return m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1).replace('.', ',') + ' km'; };
@@ -1647,11 +1665,14 @@
     if (!cashItems) cashItems = allFeatures.map(f => {
       const l = f.get('loc'), kind = cashKindOf(catById[l.c]);
       const v = kind && cashOf(l, kind);
-      return v ? { f, l, kind, v, secu: kind === 'braquage' ? secuOf(l) : null } : null;
+      if (!v) return null;
+      const crit = {};
+      (CASH_CRIT[kind] || []).forEach(c => { crit[c.key] = fieldOf(l, c.key); });
+      return { f, l, kind, v, crit };
     }).filter(Boolean);
     const here = herePos();
     const from = here || (() => { const c = view.getCenter(); return { x: c[0], y: -c[1] }; })();
-    const items = cashItems.filter(it => (cashFilter === 'all' || it.kind === cashFilter) && (it.kind !== 'braquage' || !it.secu || secuOn.has(it.secu)))
+    const items = cashItems.filter(it => (cashFilter === 'all' || it.kind === cashFilter) && critPass(it))
       .map(it => Object.assign(it, { d: Math.hypot(it.l.x - from.x, it.l.y - from.y), done: markOf(it.l.id).st === 'done' }));
     items.sort((a, b) => (a.done - b.done) || (cashSort === 'value' ? (b.v.max - a.v.max) || (a.d - b.d) : (a.d - b.d) || (b.v.max - a.v.max)));
     const note = cashSort === 'dist' && !here
@@ -1659,13 +1680,16 @@
     listEl.innerHTML = `<div class="price-head"><b>Je veux du cash</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
       <div class="price-filter">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}</div>
       <div class="price-filter">${CASH_KINDS.map(([k, t]) => `<button data-cf="${k}" class="${k === cashFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
-      (cashFilter === 'all' || cashFilter === 'braquage'
-        ? `<div class="price-filter"><span class="pf-lab">Sécurité :</span>${SECU.map(([k, t]) => `<button data-secu="${k}" class="${secuOn.has(k) ? 'sel' : ''}">${t}</button>`).join('')}</div>` : '') + note +
-      (items.length ? items.slice(0, 300).map(({ f, l, v, d, done, kind, secu }) => {
+      // Lignes de difficulté : braquages avec « Tout » ou « Braquages », véhicules avec « Véhicules à revendre »
+      Object.entries(CASH_CRIT).filter(([k]) => cashFilter === k || (cashFilter === 'all' && k === 'braquage'))
+        .map(([k, list]) => list.map(c => `<div class="price-filter"><span class="pf-lab">${c.lab} :</span>${c.vals.map(([v, t]) =>
+          `<button data-crit="${k}|${c.key}|${esc(v)}" class="${critOn[k + '|' + c.key].has(v) ? 'sel' : ''}">${t}</button>`).join('')}</div>`).join('')).join('') + note +
+      (items.length ? items.slice(0, 300).map((it) => {
+        const { f, l, v, d, done, kind } = it, ct = critText(it);
         const c = catById[l.c], r = regionById[l.r];
         const val = v.min !== v.max ? money(v.min) + ' à ' + v.max.toLocaleString('fr-CH') : (kind === 'course' ? "jusqu'à " : '') + money(v.max);
         return `<div class="mk res${done ? ' done-cash' : ''}" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
-          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}</div><div class="s">${esc(c.title)}${r ? ' · ' + esc(r) : ''}${secu ? ' · sécurité ' + esc((SECU.find(x => x[0] === secu) || [0, secu])[1].toLowerCase()) : ''} · <span class="dist">${distTxt(d)}</span></div></div>
+          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}</div><div class="s">${esc(c.title)}${r ? ' · ' + esc(r) : ''}${ct ? ' · ' + esc(ct) : ''} · <span class="dist">${distTxt(d)}</span></div></div>
           <span class="price">${val}</span></div>`;
       }).join('') : '<div class="empty">Rien dans cette catégorie.</div>');
     listEl.dataset.view = 'cash';
@@ -1686,10 +1710,10 @@
     if (cs) { cashSort = cs.dataset.cs; showCashList(); return; }
     const cf = e.target.closest('[data-cf]');
     if (cf) { cashFilter = cf.dataset.cf; showCashList(); return; }
-    const sb = e.target.closest('[data-secu]');
-    if (sb) {
-      const k = sb.dataset.secu;
-      if (secuOn.has(k) && secuOn.size > 1) secuOn.delete(k); else secuOn.add(k);   // au moins un niveau reste choisi
+    const cb = e.target.closest('[data-crit]');
+    if (cb) {
+      const [k, key, v] = cb.dataset.crit.split('|'), on = critOn[k + '|' + key];
+      if (on.has(v) && on.size > 1) on.delete(v); else on.add(v);   // au moins une valeur reste choisie par ligne
       showCashList(); return;
     }
     const it = e.target.closest('.mk[data-id]');

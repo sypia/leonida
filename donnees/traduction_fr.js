@@ -745,6 +745,8 @@ window.TRAD_FR = (function () {
   // Lignes libres (hors rubriques), traduites telles quelles
   const lignes = {
     'Interior accessible': 'Intérieur accessible',
+    '_Photos: in game, then the real building_': '_Photos : dans le jeu, puis le bâtiment réel_',
+    '_Photo: the real building_': '_Photo : le bâtiment réel_',
     '_Acts as an introduction to meditation spots if previously missed during Chapter 1 at the_ [Learn to Meditate Together Spot](https://mapgenie.io/grand-theft-auto-6/maps/leonida?locationIds=1097659)':
       "_Sert d'introduction aux lieux de méditation si on l'a manquée pendant le chapitre 1 au lieu_ [Apprendre à méditer ensemble](https://mapgenie.io/grand-theft-auto-6/maps/leonida?locationIds=1097659)",
     '_Available after completing all other meditation spots_': '_Disponible après avoir terminé tous les autres lieux de méditation_',

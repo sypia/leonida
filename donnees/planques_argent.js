@@ -114,8 +114,9 @@
   if (weed) weed.d = '**Take Value:** $20,000 - $30,000\n' + NO + '\n' + (weed.d || '') +
     "\n_Deux vidéos parlent d'un coffre dans le bureau de l'étage d'un entrepôt de North Mariana County : jusqu'à 20 000 $ (Nocode GTA, « entrepôt de culture ») et 30 000 $ (FlayHQ, « au-dessus de Big Pine »). C'est très probablement ce coffre, mais aucune ne le nomme._" +
     '\n**Tips:** Élimine les deux gardes, puis monte au bureau en hauteur.\n' + VP;
-  // Manatee Hotel (Kingfishers) : NiaDB, VicePulse et GTA BOOM concordent autour de 2 000 $
-  afterTake(1091953, OK);
+  // Manatee Hotel (Kingfishers) : NiaDB n'a pas de montant ; VicePulse, GTA BOOM et Beebom concordent autour de 2 000 $
+  const man = at(1091953);
+  if (man) man.d = (man.d || '').replace(/(\*\*Security:\*\*[^\n]*)/, (m) => m + '\n**Take Value:** $2,000\n' + OK);
   more(1091953, [
     '**Other Estimate:** $2,800 - $6,200 (Bloxodes)',
     "_Détail selon GTA BOOM : 1 066 $ dans le coffre et de la cocaïne pour environ 800 $ chez Brian. Beebom : plus de 1 000 $ dans le coffre et environ 640 $ de cocaïne._",
@@ -131,4 +132,37 @@
   });
   more(1091982, ['**Codes:** coffre 9256 (affiché sur la fiche du lieu dans la carte du jeu, selon Bloxodes)']);
   more(1091987, ["_Détail selon Beebom : 1 300 $ dans la bouche d'aération (voir la planque du perroquet), 900 $ et des objets dans le coffre de l'arrière-salle, 100 $ dans la caisse._", BEE]);
+
+  // --- Opérations de gangs : deuxième avis de Bloxodes ---
+  // Même montant ou fourchettes qui se recoupent : attesté. Fourchettes sans recoupement : sources divergentes.
+  // NiaDB sans montant : celui de Bloxodes devient le butin affiché, non attesté.
+  const nums = (t) => [...String(t).matchAll(/\$\s?([\d,]+)/g)].map(x => parseInt(x[1].replace(/,/g, ''), 10));
+  const BLOX = [
+    [1091954, '$4,000 - $16,000'], [1091952, '$23,800 - $42,200'],
+    [1091956, '$15,100 - $25,600', "**Tips:** S'ouvre par une mission facultative du chapitre 2. Le coffre s'ouvre avec des bombes collantes (Ammu-Nation). Quitter le complexe donne 2 étoiles de recherche."],
+    [1091959, '$5,800 - $10,200'], [1091957, '$21,600 - $47,200'], [1091962, '$14,400 - $22,600'], [1091966, '$22,500 - $37,600'],
+    [1091965, '$9,400 - $24,600'], [1091970, '$8,000 - $18,900'], [1091969, '$14,300 - $22,000'], [1091978, '$19,400 - $27,000'],
+    [1091979, '$5,500 - $7,500'], [1091990, '$9,500 - $10,500'], [1091984, '$8,100 - $14,400'], [1091983, '$7,000 - $13,500'],
+    [1091988, '$18,000 - $37,000']
+  ];
+  BLOX.forEach(([id, v, extra]) => {
+    const l = at(id); if (!l || /\*\*Reliability:\*\*/.test(l.d || '')) return;
+    const m = (l.d || '').match(/\*\*Take Value:\*\*([^\n]*)/);
+    const lines = [];
+    if (!m) {
+      // Pas de montant chez NiaDB : celui de Bloxodes, seule source
+      l.d = (l.d || '').replace(/(\*\*Security:\*\*[^\n]*)/, (s) => s + '\n**Take Value:** ' + v + '\n' + NO);
+      if (!/\*\*Take Value:\*\*/.test(l.d)) l.d = '**Take Value:** ' + v + '\n' + NO + '\n' + l.d;
+      lines.push("_Source du montant : Bloxodes seul, NiaDB n'en donne pas pour ce lieu._");
+    } else {
+      const a = nums(m[1]), b = nums(v);
+      const same = m[1].trim() === v, overlap = Math.max(Math.min(...a), Math.min(...b)) <= Math.min(Math.max(...a), Math.max(...b));
+      afterTake(id, same || overlap ? OK : DIV);
+      if (same) lines.push('_Même montant chez Bloxodes._');
+      else { lines.push('**Other Estimate:** ' + v + ' (Bloxodes)'); if (!overlap) lines.push(ecart); }
+    }
+    if (extra) lines.push(extra);
+    lines.push(BX);
+    more(id, lines);
+  });
 })();

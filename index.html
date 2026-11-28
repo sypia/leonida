@@ -835,14 +835,91 @@
     source: clusterSource,
     updateWhileAnimating: true,
     updateWhileInteracting: true,
-    style: (cf) => {
-      const fs = cf.get('features');
+    style: (cf, res) => {
+      const fs = cf.get('features') || [cf];   // sans regroupement, la couche lit directement les points
       if (fs.length > 1) return clusterStyle(fs.length);
       const f = fs[0];
-      return pointStyle(f.get('color'), f.get('icon'), f.get('loc').id === selectedId, markOf(f.get('loc').id));
+      const base = pointStyle(f.get('color'), f.get('icon'), f.get('loc').id === selectedId, markOf(f.get('loc').id));
+      const off = spreadOff[f.get('loc').id];
+      return off ? spreadStyle(f, base, off, res) : base;
     }
   });
   map.addLayer(poiLayer);
+
+  // --- Pastilles qui se chevauchent : au zoom fort, on les écarte autour de leur centre,
+  // avec un trait et un petit point qui montrent leur vraie position ---
+  const SPREAD_ZOOM = 4;        // dès que le regroupement en bulles s'arrête
+  const SPREAD_GAP = 26;        // px d'écran : deux pastilles plus proches que ça se chevauchent
+  let spreadOff = {};           // id du lieu -> [dx, dy] en px d'écran (y vers le bas)
+  let spreadRes = 0;
+  function computeSpread() {
+    const res = view.getResolution();
+    spreadRes = res; spreadOff = {};
+    if (zoomForRes(res) >= SPREAD_ZOOM) {
+      const D = SPREAD_GAP, fs = pointSource.getFeatures();
+      const P = fs.map(f => { const c = f.getGeometry().getCoordinates(); return [c[0] / res, -c[1] / res]; });
+      // Paires qui se chevauchent (grille pour aller vite), réunies en groupes
+      const grid = new Map(), cell = (x, y) => Math.floor(x / D) + ',' + Math.floor(y / D);
+      P.forEach((p, i) => { const k = cell(p[0], p[1]); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(i); });
+      const parent = P.map((_, i) => i);
+      const root = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+      P.forEach((p, i) => {
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+          (grid.get(cell(p[0] + a * D, p[1] + b * D)) || []).forEach(j => {
+            if (j > i && Math.hypot(P[j][0] - p[0], P[j][1] - p[1]) < D) parent[root(i)] = root(j);
+          });
+        }
+      });
+      const grp = new Map();
+      P.forEach((_, i) => { const r = root(i); if (!grp.has(r)) grp.set(r, []); grp.get(r).push(i); });
+      grp.forEach(ids => {
+        const n = ids.length;
+        if (n < 2) return;
+        const cx = ids.reduce((a, i) => a + P[i][0], 0) / n, cy = ids.reduce((a, i) => a + P[i][1], 0) / n;
+        // Chacun part du côté où il est déjà, pour que les traits ne se croisent pas
+        const ang = (i) => Math.atan2(P[i][1] - cy, P[i][0] - cx);
+        ids.sort((a, b) => ang(a) - ang(b) || a - b);
+        const a0 = Math.hypot(P[ids[0]][1] - cy, P[ids[0]][0] - cx) > 0.5 ? ang(ids[0]) : -Math.PI / 2;
+        ids.forEach((i, k) => {
+          let x, y;
+          if (n <= 8) {                      // en cercle
+            const r = Math.max(D * 1.15, D * n / (2 * Math.PI) * 1.1), t = a0 + k * 2 * Math.PI / n;
+            x = cx + r * Math.cos(t); y = cy + r * Math.sin(t);
+          } else {                           // beaucoup : en spirale
+            const r = D * 0.62 * Math.sqrt(k + 1.5), t = a0 + k * 2.4;
+            x = cx + r * Math.cos(t); y = cy + r * Math.sin(t);
+          }
+          spreadOff[fs[i].get('loc').id] = [x - P[i][0], y - P[i][1]];
+        });
+      });
+    }
+    poiLayer.changed();
+  }
+  // Position affichée d'un lieu (décalée s'il a été écarté)
+  function shownCoord(f) {
+    const c = f.getGeometry().getCoordinates(), off = spreadOff[f.get('loc').id];
+    const res = view.getResolution();
+    return off ? [c[0] + off[0] * res, c[1] - off[1] * res] : c;
+  }
+  const LEAD_DOT = new ol.style.Circle({ radius: 3.2, fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(18, 28, 36, 0.8)', width: 1.5 }) });
+  const LEAD_UNDER = new ol.style.Stroke({ color: 'rgba(18, 28, 36, 0.55)', width: 3.6 });
+  const LEAD_LINE = new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.95)', width: 1.6 });
+  function spreadStyle(f, base, off, res) {
+    const c = f.getGeometry().getCoordinates(), p = [c[0] + off[0] * res, c[1] - off[1] * res];
+    const line = new ol.geom.LineString([c, p]), pt = new ol.geom.Point(p);
+    // Traits et points sous toutes les pastilles (zIndex négatif)
+    const out = [
+      new ol.style.Style({ geometry: line, stroke: LEAD_UNDER, zIndex: -2 }),
+      new ol.style.Style({ geometry: line, stroke: LEAD_LINE, zIndex: -1 }),
+      new ol.style.Style({ image: LEAD_DOT, zIndex: -1 })
+    ];
+    base.forEach(s => { const s2 = s.clone(); s2.setGeometry(pt); out.push(s2); });
+    return out;
+  }
+  let spreadTimer = 0;
+  const scheduleSpread = () => { clearTimeout(spreadTimer); spreadTimer = setTimeout(computeSpread, 30); };
+  pointSource.on('change', scheduleSpread);
+  map.on('moveend', () => { if (view.getResolution() !== spreadRes) computeSpread(); });
 
   // --- Noms de lieux et frontières (donnees/regions.js, contours Map Genie) ---
   // Niveaux : 1 = comté, 2 = ville / zone, 3-4 = quartier / île. Affichage selon le zoom.
@@ -1002,7 +1079,9 @@
 
   function updateClustering() {
     const z = zoomForRes(view.getResolution());
-    clusterSource.setDistance(z >= CLUSTER_OFF_ZOOM ? 0 : 34);
+    // Zoom fort : plus de bulles du tout (même pour des points au même endroit, qu'on écarte ensuite)
+    const src = z >= CLUSTER_OFF_ZOOM ? pointSource : clusterSource;
+    if (poiLayer.getSource() !== src) poiLayer.setSource(src);
   }
 
   // --- Panneau des catégories ---
@@ -1296,7 +1375,7 @@
       }, 60);
       return;
     }
-    popup.setPosition(f.getGeometry().getCoordinates());
+    popup.setPosition(shownCoord(f));
     // Si la bulle sort de l'écran, on déplace la carte juste ce qu'il faut
     setTimeout(() => {
       const r = popupEl.getBoundingClientRect(), vw = window.innerWidth;
@@ -1385,10 +1464,10 @@
     const hits = [];
     map.forEachFeatureAtPixel(e.pixel, f => { hits.push(f); }, { layerFilter: l => l === poiLayer, hitTolerance: 5 });
     if (!hits.length) { closePopup(); hlSource.clear(); return; }
-    const dist = (f) => { const p = map.getPixelFromCoordinate(f.getGeometry().getCoordinates()); return Math.hypot(p[0] - e.pixel[0], p[1] - e.pixel[1]); };
+    const dist = (f) => { const fs = f.get('features') || [f]; const p = map.getPixelFromCoordinate(fs.length === 1 ? shownCoord(fs[0]) : f.getGeometry().getCoordinates()); return Math.hypot(p[0] - e.pixel[0], p[1] - e.pixel[1]); };
     hits.sort((a, b) => dist(a) - dist(b));
     const hit = hits[0];
-    const fs = hit.get('features');
+    const fs = hit.get('features') || [hit];
     if (fs.length > 1) {
       // Bulle : on zoome sur son contenu
       const ext = ol.extent.boundingExtent(fs.map(f => f.getGeometry().getCoordinates()));

@@ -165,7 +165,8 @@ window.TRAD_FR = (function () {
     'Public Building': 'Bâtiment public',
     'Leisure & Landmark': 'Loisirs et monuments',
     'Nature': 'Nature',
-    'Building': 'Bâtiment'
+    'Building': 'Bâtiment',
+    'Scoop Container': 'Conteneur Scoop'
   };
 
   // Zones : on ne traduit que les mots génériques, les noms restent tels quels
@@ -194,6 +195,7 @@ window.TRAD_FR = (function () {
 
   // Titres complets traduits tels quels (le reste passe par les règles plus bas)
   const titres = {
+    'Scoop Container': 'Conteneur Scoop',
     // Lieux de méditation
     'Ascent Meditation': "Méditation de l'ascension",
     'Jutting Cliff Meditation Spot': 'Lieu de méditation de la falaise en surplomb',

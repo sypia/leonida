@@ -64,15 +64,6 @@
   .side[data-menu] .quick-row > button { height: 40px; font-size: 14px; }
   .side[data-menu] .quick { margin-top: 14px; }
   .qn:not(:empty)::before { content: '· '; }
-  .cb-line { line-height: 1.5; }
-  .cb-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-  .cb-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 4px 2px 8px; border-radius: 12px; font-size: 11.5px; line-height: 18px;
-    background: rgba(76, 201, 240, 0.16); border: 1px solid rgba(76, 201, 240, 0.4); color: var(--text); cursor: pointer; }
-  .cb-chip i { font-style: normal; font-size: 10px; font-weight: 800; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.12); }
-  .cb-chip:hover i { background: rgba(255, 255, 255, 0.28); }
-  .cb-chip.off { background: transparent; border-color: rgba(255, 255, 255, 0.2); color: var(--muted); }
-  .cb-btn { border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: var(--text); border-radius: 12px; padding: 2px 10px; font: inherit; font-size: 11.5px; line-height: 18px; cursor: pointer; }
-  .cb-btn.main { background: rgba(76, 201, 240, 0.85); border-color: transparent; color: #07202b; font-weight: 700; }
   .side-count .reset-focus { margin-left: 6px; color: #9cc9e6; cursor: pointer; text-decoration: underline; }
   .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 40px;
     border: 0; border-radius: 10px; background: rgba(47, 191, 113, 0.9); color: #06281a; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
@@ -128,7 +119,7 @@
     background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap;
   }
   .side-tools button:hover, .mini-btn:hover { background: rgba(255, 255, 255, 0.14); }
-  .side-count { color: var(--muted); font-size: 11px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .side-count { color: var(--muted); font-size: 11px; margin-top: 8px; font-variant-numeric: tabular-nums; height: 16px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .side-count b { color: var(--text); }
   .side-list { flex: 1; overflow-y: auto; padding: 6px 6px 10px; overscroll-behavior: contain; }
   .side-list::-webkit-scrollbar { width: 8px; }
@@ -1355,7 +1346,7 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(focusLabel)} »` +
+    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> ${shown > 1 ? 'lieux' : 'lieu'} · « ${esc(focusLabel)} »` +
       (focusKind === 'cat' ? '<span class="reset-focus" data-reset-focus>Tout réafficher</span>' : '');
     else if (mode === 'all') countEl.innerHTML = catBarHtml(shown);
     else countEl.innerHTML = '';
@@ -1368,19 +1359,7 @@
   // Peu de catégories affichées : une pastille par catégorie, avec une croix pour l'enlever.
   // Presque tout affiché : les catégories masquées, avec un + pour les remettre.
   function catBarHtml(shown) {
-    const total = DATA.categories.length, n = enabled.size;
-    const pts = `<b>${shown.toLocaleString('fr-CH')}</b> ${shown > 1 ? 'lieux' : 'lieu'} sur la carte`;
-    const chip = (id, sign, tip) => { const c = catById[id]; return c ? `<span class="cb-chip${sign === '+' ? ' off' : ''}" data-cb="${id}" title="${tip}">${esc(c.title)}<i>${sign === '+' ? '+' : '✕'}</i></span>` : ''; };
-    const back = soloPrev ? '<button class="cb-btn" data-solo-back>Revenir</button>' : '';
-    const all = '';   // « Tout afficher » est déjà juste au-dessus
-    if (n === total) return `<div class="cb-line">${pts} · toutes les catégories</div>`;
-    if (n === 0) return `<div class="cb-line">Aucune catégorie affichée</div>`;
-    const gs = groupSolo();
-    if (gs) return `<div class="cb-line">${pts} · seulement le groupe « ${esc(gs.title)} »</div>${back ? '<div class="cb-chips">' + back + '</div>' : ''}`;
-    if (n <= 8) return `<div class="cb-line">${pts} · affiché :</div><div class="cb-chips">${[...enabled].map(id => chip(id, '✕', 'Enlever de la carte')).join('')}${back}${all}</div>`;
-    const off = DATA.categories.filter(c => !enabled.has(c.id));
-    if (off.length <= 8) return `<div class="cb-line">${pts} · masqué :</div><div class="cb-chips">${off.map(c => chip(c.id, '+', 'Remettre sur la carte')).join('')}${back}${all}</div>`;
-    return `<div class="cb-line">${pts} · ${n} catégories sur ${total}</div>${back ? '<div class="cb-chips">' + back + '</div>' : ''}`;
+    return `<b>${shown.toLocaleString('fr-CH')}</b> ${shown > 1 ? 'lieux' : 'lieu'} sur la carte`;
   }
   listEl.addEventListener('click', (e) => {
     const fold = e.target.closest('[data-fold]');
@@ -1396,6 +1375,7 @@
       closeSub();
       if (solo) {
         enabled = soloPrev ? new Set(soloPrev) : new Set(); soloPrev = null;
+        grp.classList.add('collapsed'); syncFoldBtn();
       } else {
         if (!(soloPrev && (enabled.size === 1 || isGroupSolo()))) soloPrev = new Set(enabled);
         enabled = new Set(ids);
@@ -2219,13 +2199,6 @@
   cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cashBtn.click(); } };
   countEl.addEventListener('click', (e) => {
     if (e.target.closest('[data-reset-focus]')) backToMenu();
-    const cb = e.target.closest('[data-cb]');
-    if (cb) { const id = +cb.dataset.cb; enabled.has(id) ? enabled.delete(id) : enabled.add(id); saveEnabled(); syncChecks(); refreshPoints(); return; }
-    if (e.target.closest('[data-cb-all]')) { soloPrev = null; DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); return; }
-    if (e.target.closest('[data-solo-back]')) {
-      enabled = soloPrev ? new Set(soloPrev) : new Set(DATA.categories.map(c => c.id)); soloPrev = null;
-      saveEnabled(); syncChecks(); refreshPoints();
-    }
   });
 
   // --- Menu « Véhicules » : véhicules à voler triés par performances (NiaDB), valeur ou distance ---

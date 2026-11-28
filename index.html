@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128184804">
+<meta name="leonida-version" content="20261128185203">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128184804">
+<link rel="stylesheet" href="lib/ol.css?v=20261128185203">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -392,10 +392,14 @@
   }
   .popup.sheet .body { overflow: visible; }
   .popup.sheet .ph { max-height: 28vh; }
-  .popup .ph-wrap { position: relative; overflow: hidden; }
+  .popup .ph-wrap { position: relative; overflow: hidden; flex: none; }   /* la fiche est une colonne flexible : le cadre ne doit pas rétrécir */
   .popup.sheet .ph-wrap { touch-action: pan-y; }   /* le pincement est géré par la page, le défilement vertical reste natif */
   .popup.sheet .ph-wrap .ph { cursor: default; transform-origin: 50% 50%; will-change: transform; }
   .popup.sheet .ph-wrap.zoomed { touch-action: none; }
+  .popup .ph-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 6px; pointer-events: none; transition: opacity 0.2s; }
+  .popup .ph-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); box-shadow: 0 0 3px rgba(0, 0, 0, 0.6); }
+  .popup .ph-dots i.on { background: #fff; }
+  .popup .ph-wrap.zoomed .ph-dots { opacity: 0; }
   .popup.sheet::before { content: ''; position: sticky; top: 0; display: block; height: 0; }
 
   /* Fenêtre de dialogue (marques partagées) */
@@ -587,22 +591,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128184804"></script>
-<script src="donnees/points_mapgenie.js?v=20261128184804"></script>
-<script src="lib/icones.js?v=20261128184804"></script>
-<script src="donnees/points_dexerto.js?v=20261128184804"></script>
-<script src="donnees/points_gtadb.js?v=20261128184804"></script>
-<script src="donnees/points_scoop.js?v=20261128184804"></script>
-<script src="donnees/niadb.js?v=20261128184804"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128184804"></script>
-<script src="donnees/planques_argent.js?v=20261128184804"></script>
-<script src="donnees/doublons.js?v=20261128184804"></script>
-<script src="donnees/corrections.js?v=20261128184804"></script>
-<script src="donnees/organisation.js?v=20261128184804"></script>
-<script src="donnees/regions.js?v=20261128184804"></script>
-<script src="donnees/eaux.js?v=20261128184804"></script>
-<script src="donnees/traduction_fr.js?v=20261128184804"></script>
-<script src="donnees/lieux_fr.js?v=20261128184804"></script>
+<script src="lib/ol.js?v=20261128185203"></script>
+<script src="donnees/points_mapgenie.js?v=20261128185203"></script>
+<script src="lib/icones.js?v=20261128185203"></script>
+<script src="donnees/points_dexerto.js?v=20261128185203"></script>
+<script src="donnees/points_gtadb.js?v=20261128185203"></script>
+<script src="donnees/points_scoop.js?v=20261128185203"></script>
+<script src="donnees/niadb.js?v=20261128185203"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128185203"></script>
+<script src="donnees/planques_argent.js?v=20261128185203"></script>
+<script src="donnees/doublons.js?v=20261128185203"></script>
+<script src="donnees/corrections.js?v=20261128185203"></script>
+<script src="donnees/organisation.js?v=20261128185203"></script>
+<script src="donnees/regions.js?v=20261128185203"></script>
+<script src="donnees/eaux.js?v=20261128185203"></script>
+<script src="donnees/traduction_fr.js?v=20261128185203"></script>
+<script src="donnees/lieux_fr.js?v=20261128185203"></script>
 <script>
 (function () {
   'use strict';
@@ -1848,8 +1852,10 @@
     selectedId = l.id; poiLayer.changed();
     let h = '<button class="close" aria-label="Fermer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
     if (imgs.length) {
-      h += `<div class="ph-wrap"><img class="ph" src="${esc(imgs[0])}" alt="" loading="lazy" referrerpolicy="no-referrer"></div>`;
-      if (imgs.length > 1) h += '<div class="ph-strip">' + imgs.map((u, i) => `<img src="${esc(u)}" data-i="${i}" class="${i ? '' : 'sel'}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('') + '</div>';
+      // Téléphone : des points sur la photo à la place des vignettes, on glisse sur le côté pour changer
+      const dots = isPhone() && imgs.length > 1 ? '<div class="ph-dots">' + imgs.map((u, i) => `<i class="${i ? '' : 'on'}"></i>`).join('') + '</div>' : '';
+      h += `<div class="ph-wrap"><img class="ph" src="${esc(imgs[0])}" alt="" loading="lazy" referrerpolicy="no-referrer">${dots}</div>`;
+      if (imgs.length > 1 && !isPhone()) h += '<div class="ph-strip">' + imgs.map((u, i) => `<img src="${esc(u)}" data-i="${i}" class="${i ? '' : 'sel'}" alt="" loading="lazy" referrerpolicy="no-referrer">`).join('') + '</div>';
     }
     h += `<div class="body${imgs.length ? '' : ' noimg'}">
       <div class="cat-line">${badgeHtml(col, f.get('icon'))}${esc(g ? g.title : '')} · ${esc(c.title)}</div>
@@ -1886,7 +1892,7 @@
       main.dataset.i = 0;
       // Ordinateur : la photo s'ouvre en grand. Téléphone : on zoome directement dans son cadre (pincer, double toucher)
       main.onclick = () => { if (!isPhone()) openViewer(imgs, +main.dataset.i || 0); };
-      if (phone) frameZoom(main.closest('.ph-wrap'), main);
+      if (phone) frameZoom(main.closest('.ph-wrap'), main, imgs);
     }
     cardEl.querySelectorAll('.ph-strip img').forEach(im => im.onclick = () => {
       main.src = imgs[+im.dataset.i]; main.dataset.i = im.dataset.i;
@@ -2010,9 +2016,23 @@
 
   // --- Téléphone : zoom dans le cadre de la photo de la fiche. Pincer ou double toucher pour zoomer, un doigt pour
   //     se déplacer une fois zoomé ; le zoom reste jusqu'à ce qu'on dézoome (pincer ou double toucher) ou qu'on ferme la fiche ---
-  function frameZoom(wrap, img) {
+  function frameZoom(wrap, img, list) {
     if (!wrap) return;
-    let s = 1, tx = 0, ty = 0, g = null, lastTap = 0;
+    let s = 1, tx = 0, ty = 0, g = null, lastTap = 0, idx = 0;
+    const many = list && list.length > 1;
+    const dots = wrap.querySelectorAll('.ph-dots i');
+    // Change de photo en la faisant glisser hors du cadre, puis la suivante arrive de l'autre côté
+    const go = (dir) => {
+      const W = wrap.clientWidth;
+      img.style.transition = 'transform 0.18s ease'; img.style.transform = `translateX(${-dir * W}px)`;
+      setTimeout(() => {
+        idx = (idx + dir + list.length) % list.length;
+        img.src = list[idx]; img.dataset.i = idx;
+        dots.forEach((d, i) => d.classList.toggle('on', i === idx));
+        img.style.transition = 'none'; img.style.transform = `translateX(${dir * W}px)`;
+        requestAnimationFrame(() => requestAnimationFrame(() => { img.style.transition = 'transform 0.18s ease'; img.style.transform = ''; }));
+      }, 180);
+    };
     const apply = (anim) => {
       img.style.transition = anim ? 'transform 0.2s ease' : 'none';
       img.style.transform = s > 1 ? `translate(${tx}px, ${ty}px) scale(${s})` : '';
@@ -2047,8 +2067,9 @@
         e.preventDefault(); e.stopPropagation();
       } else if (g.mode === 'one' && ts.length === 1) {
         const dx = ts[0].clientX - g.x0, dy = ts[0].clientY - g.y0;
-        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) g.moved = true;
+        if (!g.moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) { g.moved = true; g.side = many && s === 1 && Math.abs(dx) > Math.abs(dy); }
         if (s > 1) { tx = g.tx0 + dx; ty = g.ty0 + dy; clamp(); apply(false); e.preventDefault(); e.stopPropagation(); }
+        else if (g.side) { g.dx = dx; img.style.transition = 'none'; img.style.transform = `translateX(${dx}px)`; e.preventDefault(); e.stopPropagation(); }
       }
     }, { passive: false });
     wrap.addEventListener('touchend', (e) => {
@@ -2056,6 +2077,11 @@
       if (e.touches.length === 1 && g.mode === 'pinch') { g = { mode: 'one', x0: e.touches[0].clientX, y0: e.touches[0].clientY, tx0: tx, ty0: ty, moved: true }; return; }
       if (e.touches.length) return;
       const one = g; g = null;
+      if (one.mode === 'one' && one.side) {   // glissement sur le côté : photo suivante ou précédente, sinon retour en place
+        if (Math.abs(one.dx || 0) > 50) go(one.dx < 0 ? 1 : -1);
+        else { img.style.transition = 'transform 0.18s ease'; img.style.transform = ''; }
+        return;
+      }
       if (one.mode !== 'one' || one.moved) return;
       const now = Date.now(), t = e.changedTouches[0];
       if (now - lastTap < 300) {   // double toucher : zoom x2,5 sur ce point, ou retour à la taille normale

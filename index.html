@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128181113">
+<meta name="leonida-version" content="20261128181419">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128181113">
+<link rel="stylesheet" href="lib/ol.css?v=20261128181419">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -563,22 +563,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128181113"></script>
-<script src="donnees/points_mapgenie.js?v=20261128181113"></script>
-<script src="lib/icones.js?v=20261128181113"></script>
-<script src="donnees/points_dexerto.js?v=20261128181113"></script>
-<script src="donnees/points_gtadb.js?v=20261128181113"></script>
-<script src="donnees/points_scoop.js?v=20261128181113"></script>
-<script src="donnees/niadb.js?v=20261128181113"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128181113"></script>
-<script src="donnees/planques_argent.js?v=20261128181113"></script>
-<script src="donnees/doublons.js?v=20261128181113"></script>
-<script src="donnees/corrections.js?v=20261128181113"></script>
-<script src="donnees/organisation.js?v=20261128181113"></script>
-<script src="donnees/regions.js?v=20261128181113"></script>
-<script src="donnees/eaux.js?v=20261128181113"></script>
-<script src="donnees/traduction_fr.js?v=20261128181113"></script>
-<script src="donnees/lieux_fr.js?v=20261128181113"></script>
+<script src="lib/ol.js?v=20261128181419"></script>
+<script src="donnees/points_mapgenie.js?v=20261128181419"></script>
+<script src="lib/icones.js?v=20261128181419"></script>
+<script src="donnees/points_dexerto.js?v=20261128181419"></script>
+<script src="donnees/points_gtadb.js?v=20261128181419"></script>
+<script src="donnees/points_scoop.js?v=20261128181419"></script>
+<script src="donnees/niadb.js?v=20261128181419"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128181419"></script>
+<script src="donnees/planques_argent.js?v=20261128181419"></script>
+<script src="donnees/doublons.js?v=20261128181419"></script>
+<script src="donnees/corrections.js?v=20261128181419"></script>
+<script src="donnees/organisation.js?v=20261128181419"></script>
+<script src="donnees/regions.js?v=20261128181419"></script>
+<script src="donnees/eaux.js?v=20261128181419"></script>
+<script src="donnees/traduction_fr.js?v=20261128181419"></script>
+<script src="donnees/lieux_fr.js?v=20261128181419"></script>
 <script>
 (function () {
   'use strict';
@@ -700,6 +700,29 @@
       map.updateSize();
     };
     fit();
+    // --- DIAGNOSTIC TEMPORAIRE (bande en bas sur iPhone) : fond rose et mesures affichées ; toucher le cadre pour le fermer ---
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+    document.body.appendChild(probe);
+    root.style.background = '#ff00aa'; document.body.style.background = '#ff00aa';
+    const diag = document.createElement('div');
+    diag.style.cssText = 'position:fixed;z-index:9999;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#fff;font:12px/1.45 ui-monospace,Menlo,monospace;padding:8px 10px;border-radius:8px;white-space:pre;pointer-events:auto';
+    const show = () => {
+      const cs = getComputedStyle(probe), vv = window.visualViewport, mr = document.getElementById('map').getBoundingClientRect();
+      diag.textContent = 'DIAGNOSTIC (toucher pour fermer)\n' +
+        'innerWidth x innerHeight : ' + innerWidth + ' x ' + innerHeight + '\n' +
+        'screen : ' + screen.width + ' x ' + screen.height + '\n' +
+        'visualViewport : ' + (vv ? Math.round(vv.width) + ' x ' + Math.round(vv.height) + ' (offsetTop ' + Math.round(vv.offsetTop) + ')' : '-') + '\n' +
+        'clientHeight html : ' + root.clientHeight + '\n' +
+        'safe-area haut/bas : ' + cs.paddingTop + ' / ' + cs.paddingBottom + '\n' +
+        '--app-h / --app-gap : ' + root.style.getPropertyValue('--app-h') + ' / ' + root.style.getPropertyValue('--app-gap') + '\n' +
+        'carte : top ' + Math.round(mr.top) + ', bas ' + Math.round(mr.bottom) + '\n' +
+        'devicePixelRatio : ' + devicePixelRatio;
+    };
+    show(); document.body.appendChild(diag);
+    diag.onclick = () => { diag.remove(); };
+    window.addEventListener('resize', show);
+    if (window.visualViewport) visualViewport.addEventListener('resize', show);
     window.addEventListener('resize', fit);
     window.addEventListener('orientationchange', () => setTimeout(fit, 300));
   }

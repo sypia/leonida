@@ -54,6 +54,16 @@
   .quick-b.on { background: rgba(76, 201, 240, 0.85); border-color: transparent; color: #07202b; }
   .cash-main.on { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); }
   .qn { font-weight: 800; }
+  /* Menu « Je veux du cash » ou « Véhicules » ouvert : le reste du panneau disparaît, pour ne pas chercher ailleurs par erreur */
+  .cash-main, .quick-b { position: relative; }
+  .qx { display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 800; opacity: 0.8; }
+  .cash-main.on .qx, .quick-b.on .qx { display: block; }
+  .side[data-menu] #tabs, .side[data-menu] #disp, .side[data-menu] #tools-all, .side[data-menu] #side-count { display: none; }
+  .side[data-menu="cash"] .quick-row { display: none; }
+  .side[data-menu="veh"] #cash-open, .side[data-menu="veh"] #dice { display: none; }
+  .side[data-menu="veh"] .quick-row { margin-top: 0; }
+  .side[data-menu="veh"] #veh-open { height: 40px; font-size: 14px; }
+  .side[data-menu] .quick { margin-top: 14px; }
   .qn:not(:empty)::before { content: '· '; }
   .side-count .reset-focus { margin-left: 6px; color: #9cc9e6; cursor: pointer; text-decoration: underline; }
   .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 40px;
@@ -134,6 +144,10 @@
     display: grid; place-items: center;
   }
   .cat.on .box { border-color: transparent; }
+  /* La case seule ajoute ou retire la catégorie : zone de clic agrandie, surtout pour le doigt */
+  .cat .box { position: relative; }
+  .cat .box::after { content: ''; position: absolute; inset: -9px -8px -9px -14px; }
+  .cat .box:hover { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12); }
   .cat .box svg { width: 10px; height: 10px; stroke: #10181e; stroke-width: 3; fill: none; opacity: 0; }
   .cat.on .box svg { opacity: 1; }
   .cat .ico { width: 16px; height: 16px; flex: none; display: grid; place-items: center; }
@@ -178,7 +192,14 @@
   .price-filter { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px 6px; }
   .price-filter button { border: 1px solid rgba(255, 255, 255, 0.14); background: transparent; color: var(--muted); border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 11px; cursor: pointer; }
   .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
-  .price-filter button.ca { margin-left: auto; }
+  .pf-top { display: flex; gap: 6px; padding: 10px 6px 6px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 7px; overflow: hidden; flex: none; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 5px 9px; font: inherit; font-size: 11.5px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid rgba(255, 255, 255, 0.14); }
+  .seg button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
+  .pf-sel { flex: 1; min-width: 0; height: 28px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(0, 0, 0, 0.25); color: var(--text); font: inherit; font-size: 12px; padding: 0 6px; cursor: pointer; }
+  .pf-sel option { background: #1b2230; color: #e8edf3; }
+  .pf-lab2 { font-size: 11px; color: var(--muted); flex: none; }
   .price-filter button.ca.sel { color: #7ee2a8; border-color: rgba(126, 226, 168, 0.5); background: rgba(126, 226, 168, 0.12); }
   .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
   .cat-res .see { margin-left: auto; display: inline-flex; align-items: center; height: 26px; font-size: 11px; }
@@ -443,9 +464,9 @@
       <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
     <div class="quick" id="quick">
-      <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b></button>
+      <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
       <div class="quick-row">
-        <button class="quick-b" id="veh-open" title="Véhicules à voler, triés par vitesse, accélération, tenue de route… Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M5 16h14M6 16l1.5-5h9L18 16M4 16v3h3v-3M17 16v3h3v-3M8.5 13.5h0.01M15.5 13.5h0.01"/></svg><span>Véhicules</span><b class="qn"></b></button>
+        <button class="quick-b" id="veh-open" title="Véhicules à voler, triés par vitesse, accélération, tenue de route… Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M5 16h14M6 16l1.5-5h9L18 16M4 16v3h3v-3M17 16v3h3v-3M8.5 13.5h0.01M15.5 13.5h0.01"/></svg><span>Véhicules</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
         <button class="quick-b" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
       </div>
     </div>
@@ -1302,6 +1323,7 @@
     const shown = pointSource.getFeatures().length;
     if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(focusLabel)} »` +
       (focusKind === 'cat' ? '<span class="reset-focus" data-reset-focus>Tout réafficher</span>' : '');
+    else if (mode === 'all' && enabled.size === 1) { const c = catById[[...enabled][0]]; countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(c ? c.title : '')} »<span class="reset-focus" data-solo-back>${soloPrev ? 'Revenir' : 'Tout réafficher'}</span>`; }
     else if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
@@ -1326,11 +1348,22 @@
     const cat = e.target.closest('.cat');
     if (cat) {
       const id = +cat.dataset.c;
-      enabled.has(id) ? enabled.delete(id) : enabled.add(id);
+      if (e.target.closest('.box')) {
+        // La case : ajoute ou retire cette catégorie, sans toucher aux autres
+        enabled.has(id) ? enabled.delete(id) : enabled.add(id);
+      } else if (enabled.size === 1 && enabled.has(id) && soloPrev) {
+        // Deuxième clic sur le nom de la catégorie déjà seule : retour à la sélection d'avant
+        enabled = new Set(soloPrev); soloPrev = null;
+      } else {
+        // Le nom : n'affiche que cette catégorie (la sélection d'avant reste en mémoire pour « Revenir »)
+        if (!(enabled.size === 1 && enabled.has(id))) soloPrev = new Set(enabled);
+        enabled = new Set([id]);
+      }
       saveEnabled(); syncChecks(); refreshPoints();
     }
   });
-  document.getElementById('all-on').onclick = () => { DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
+  let soloPrev = null;
+  document.getElementById('all-on').onclick = () => { soloPrev = null; DATA.categories.forEach(c => enabled.add(c.id)); saveEnabled(); syncChecks(); refreshPoints(); };
   document.getElementById('all-off').onclick = () => { DATA.categories.forEach(c => enabled.delete(c.id)); saveEnabled(); syncChecks(); refreshPoints(); closePopup(); };
   const foldBtn = document.getElementById('fold-all');
   foldBtn.onclick = () => {
@@ -1941,10 +1974,9 @@
     items.sort((a, b) => (a.done - b.done) || (cashSort === 'value' ? (b.v.max - a.v.max) || (a.d - b.d) : (a.d - b.d) || (b.v.max - a.v.max)));
     const note = cashSort === 'dist' && !here
       ? '<div class="cash-note">Distances depuis le centre de la carte. Pour partir de ta position : appui long sur la carte (ou clic droit), puis « Je suis là ».</div>' : '';
-    listEl.innerHTML = `<div class="price-head"><b>Je veux du cash</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
-      <div class="price-filter">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}` +
-      `<button data-ca class="ca${cashAttested ? ' sel' : ''}" title="Masque les montants qui viennent d'une seule source ou sur lesquels les sources ne sont pas d'accord. Les montants de la carte du jeu restent.">${cashAttested ? '✓ ' : ''}Attestées seulement</button></div>
-      <div class="price-filter">${CASH_KINDS.map(([k, t]) => `<button data-cf="${k}" class="${k === cashFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
+    listEl.innerHTML = `<div class="pf-top"><div class="seg">${[['value', 'Par gain'], ['dist', 'Par distance']].map(([k, t]) => `<button data-cs="${k}" class="${k === cashSort ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
+      `<select class="pf-sel" data-cf-sel aria-label="Type">${CASH_KINDS.map(([k, t]) => `<option value="${k}"${k === cashFilter ? ' selected' : ''}>${k === 'all' ? 'Tous les types' : t}</option>`).join('')}</select></div>
+      <div class="price-filter"><button data-ca class="ca${cashAttested ? ' sel' : ''}" title="Masque les montants qui viennent d'une seule source ou sur lesquels les sources ne sont pas d'accord. Les montants de la carte du jeu restent.">${cashAttested ? '✓ ' : ''}Attestées seulement</button></div>` +
       // Lignes de difficulté : braquages avec « Tout » ou « Braquages », véhicules avec « Véhicules à revendre »
       Object.entries(CASH_CRIT).filter(([k]) => cashFilter === k || (cashFilter === 'all' && k === 'braquage'))
         .map(([k, list]) => list.map(c => `<div class="price-filter"><span class="pf-lab">${c.lab} :</span>${c.vals.map(([v, t]) =>
@@ -2028,7 +2060,13 @@
     if (focusKind === 'cash') openCash(); else setSide(true);
   };
   cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cashBtn.click(); } };
-  countEl.addEventListener('click', (e) => { if (e.target.closest('[data-reset-focus]')) backToMenu(); });
+  countEl.addEventListener('click', (e) => {
+    if (e.target.closest('[data-reset-focus]')) backToMenu();
+    if (e.target.closest('[data-solo-back]')) {
+      enabled = soloPrev ? new Set(soloPrev) : new Set(DATA.categories.map(c => c.id)); soloPrev = null;
+      saveEnabled(); syncChecks(); refreshPoints();
+    }
+  });
 
   // --- Menu « Véhicules » : véhicules à voler triés par performances (NiaDB), valeur ou distance ---
   const VEH_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
@@ -2058,9 +2096,8 @@
     });
     const note = !window.PERF_VEHICULES ? '' : '<div class="cash-note">Performances : NiaDB (et playday.one pour quelques-uns), pour ' + vehItems.filter(it => it.p).length + ' véhicules sur ' + vehItems.length +
       '. Les autres sont en fin de liste quand on trie par performance.</div>';
-    listEl.innerHTML = `<div class="price-head"><b>Véhicules</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
-      <div class="price-filter"><span class="pf-lab">Trier :</span>${VEH_SORTS.map(([k, t]) => `<button data-vs="${k}" class="${k === vehSort ? 'sel' : ''}">${t}</button>`).join('')}</div>
-      <div class="price-filter">${PRICE_FILTERS.map(([k, t]) => `<button data-vf="${k}" class="${k === vehFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
+    listEl.innerHTML = `<div class="pf-top"><span class="pf-lab2">Trier par</span><select class="pf-sel" data-vs-sel aria-label="Trier par">${VEH_SORTS.map(([k, t]) => `<option value="${k}"${k === vehSort ? ' selected' : ''}>${t}</option>`).join('')}</select>` +
+      `<select class="pf-sel" data-vf-sel aria-label="Type">${PRICE_FILTERS.map(([k, t]) => `<option value="${k}"${k === vehFilter ? ' selected' : ''}>${k === 'all' ? 'Tous les types' : t}</option>`).join('')}</select></div>` +
       CASH_CRIT.vehicule.map(c => `<div class="price-filter"><span class="pf-lab">${c.lab} :</span>${c.vals.map(([v, t]) =>
         `<button data-crit="vehicule|${c.key}|${esc(v)}" class="${critOn['vehicule|' + c.key].has(v) ? 'sel' : ''}">${t}</button>`).join('')}</div>`).join('') + note +
       (items.length ? items.map(it => {
@@ -2077,6 +2114,16 @@
     saveCash();   // difficultés partagées avec « Je veux du cash »
     setFocus(new Set(items.map(it => it.l.id)), 'Véhicules', 'veh');
   }
+  listEl.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.matches('[data-cf-sel]')) { cashFilter = t.value; showCashList(); }
+    else if (t.matches('[data-vs-sel]')) { vehSort = t.value; showVehList(); }
+    else if (t.matches('[data-vf-sel]')) { vehFilter = t.value; showVehList(); }
+  });
+  // Le panneau suit le menu ouvert (data-menu sur le panneau : le CSS masque le reste)
+  const sideEl = document.getElementById('side');
+  const syncMenu = () => { const v = listEl.dataset.view; if (v === 'cash' || v === 'veh') sideEl.dataset.menu = v; else delete sideEl.dataset.menu; };
+  new MutationObserver(syncMenu).observe(listEl, { attributes: true, attributeFilter: ['data-view'] });
   function openVeh(sort) {
     if (sort) vehSort = sort;
     if (mode !== 'all') setMode('all');

@@ -76,13 +76,17 @@
     "**Tips:** Force la porte de derrière, élimine les deux occupants, ouvre le coffre et prends les paquets d'herbe.",
     VP
   ]);
-  // Conteneur du port de Millport : celui de la montre Novak Laurent chez Map Genie, d'après la description
+  // Conteneur du port de Millport : celui de la montre Novak Laurent (Map Genie), qui est aussi le conteneur Scoop voisin (MapMaster)
   add(960001006, 1099424, 'Millport Container Stash', [
-    '**Take Value:** $10,000', NO, APPROX,
-    "_De l'argent et une montre dans un conteneur fermé, en haut d'une pile, au port du nord-est de Millport. Probablement le conteneur de la montre Novak Laurent Haute Grandeur (Map Genie), mais la vidéo parle d'un conteneur jaune sans plus de précision._",
-    "**Tips:** Il faut un hélicoptère : pose-toi sur le conteneur, force les portes et entre.",
-    VP, '_Vidéo de NoChillPatel, montant non recoupé._'
+    '**Take Value:** $10,000', NO,
+    "_De l'argent et une montre (Novak Laurent Haute Grandeur) dans un conteneur fermé, en haut d'une pile, au port du nord-est de Millport. C'est un conteneur Scoop : la vidéo, Map Genie (montre) et MapMaster (conteneur Scoop) désignent le même endroit. Le montant ne vient que de la vidéo._",
+    "**Tips:** Conteneur Scoop : il s'ouvre avec l'outil de découpe (Cut-Off Tool), débloqué au chapitre 3. Pour l'atteindre en haut de la pile, pose-toi dessus en hélicoptère.",
+    '**Chapter:** 3',
+    VP, '_Vidéo de NoChillPatel, montant non recoupé._', '_Source : MapMaster (position du conteneur Scoop, fusionné ici)_'
   ]);
+  D.locations = D.locations.filter(l => l.id !== 970147240);   // le point Scoop isolé, à environ 55 m (écart de recalage)
+  const watchMp = at(1099424);
+  if (watchMp) watchMp.d = (watchMp.d || '') + "\n**Tips:** C'est un conteneur Scoop : il s'ouvre avec l'outil de découpe (Cut-Off Tool), débloqué au chapitre 3. Environ 10 000 $ à prendre dans le même conteneur (voir la planque du conteneur de Millport).";
   // « Billet doré » de la Sahara Arena (l'aréna de basket de Vice City)
   add(960001007, 1091643, 'Sahara Arena Golden Bill', [
     '**Take Value:** $100,000', NO, APPROX,

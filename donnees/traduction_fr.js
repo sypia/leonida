@@ -176,6 +176,7 @@ window.TRAD_FR = (function () {
     'Leisure & Landmark': 'Loisirs et monuments',
     'Nature': 'Nature',
     'Building': 'Bâtiment',
+    'Cash Stash': "Planque d'argent",
     'Scoop Container': 'Conteneur Scoop',
     'Room 701, the Y Hotel': 'Chambre 701, Y Hotel',
     'Restaurant': 'Restaurant',
@@ -209,6 +210,9 @@ window.TRAD_FR = (function () {
 
   // Titres complets traduits tels quels (le reste passe par les règles plus bas)
   const titres = {
+    'Crab Research Outpost': 'Avant-poste de recherche sur les crabes', 'Apollo Aggregates Warehouse': 'Entrepôt Apollo Aggregates (ours en peluche)',
+    'Three Sheets Liquor Parrot Stash': 'Cachette du perroquet, Three Sheets Liquor', "Jason's House Floorboards": 'Plancher de la maison de Jason',
+    'Pearl House Hair Salon Back Room': 'Arrière-salle du Pearl House Hair Salon',
     'Room 701, the Y Hotel': 'Chambre 701, Y Hotel',
     'Scoop Container': 'Conteneur Scoop',
     // Lieux de méditation

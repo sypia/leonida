@@ -487,7 +487,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> (quelques performances : <a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a>) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
+  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques d'argent : guides de joueurs (VicePulse et autres) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> (quelques performances : <a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a>) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
@@ -509,6 +509,7 @@
 <script src="donnees/points_scoop.js"></script>
 <script src="donnees/niadb.js"></script>
 <script src="donnees/niadb_vehicules.js"></script>
+<script src="donnees/planques_argent.js"></script>
 <script src="donnees/doublons.js"></script>
 <script src="donnees/corrections.js"></script>
 <script src="donnees/organisation.js"></script>
@@ -1836,12 +1837,13 @@
 
   // --- « Je veux du cash » : tout ce qui rapporte, trié par gain ou par distance ---
   // Montants lus dans les fiches Map Genie d'origine (anglais)
-  const CASH_KINDS = [['all', 'Tout'], ['braquage', 'Braquages'], ['vehicule', 'Véhicules à revendre'], ['course', 'Courses'], ['drone', 'Drones']];
-  const CASH_FIELD = { braquage: 'Take Value', vehicule: 'Sell Value', course: 'Max Payout', drone: 'Reward' };
+  const CASH_KINDS = [['all', 'Tout'], ['planque', "Planques d'argent"], ['braquage', 'Braquages'], ['vehicule', 'Véhicules à revendre'], ['course', 'Courses'], ['drone', 'Drones']];
+  const CASH_FIELD = { planque: 'Take Value', braquage: 'Take Value', vehicule: 'Sell Value', course: 'Max Payout', drone: 'Reward' };
   const CASH_CAT = { 'Bank': 'braquage', 'Big Bank': 'braquage', 'Payday Loans': 'braquage', 'Low-End Jewelry Store': 'braquage',
     'High-End Jewelry Store': 'braquage', 'Pawn Shop': 'braquage', 'Convenience Store': 'braquage', 'Fast Food': 'braquage',
     'Liquor Store': 'braquage', 'Kingfishers': 'braquage', 'Kolt & Associates': 'braquage', 'M7': 'braquage', 'La Polilla Negra': 'braquage',
     'Final Chapter': 'braquage', 'San4San': 'braquage', 'PTT Youngin$': 'braquage', 'The Guardia Brothers': 'braquage', 'Criminals': 'braquage',
+    'Safe': 'braquage', 'Cash Stash': 'planque',
     'Standout Vehicle': 'vehicule', 'Randy Vehicle': 'vehicule', 'Moses Vehicle': 'vehicule', 'Top Fun Drones': 'drone' };
   const RACING_GROUP = 27136;
   const cashKindOf = (c) => CASH_CAT[c.en] || (c.group_id === RACING_GROUP ? 'course' : null);

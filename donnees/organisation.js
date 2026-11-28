@@ -1,5 +1,5 @@
 // Organisation des catégories par thème, quelle que soit la source (Map Genie, Dexerto, gtadb.org, MapMaster).
-// Ordre : d'abord ce qui se visite, puis les activités, enfin ce qui relève du jeu (collection, histoire, véhicules, braquages).
+// Ordre : les missions de l'histoire en tête, puis ce qui se visite, les activités, enfin le reste du jeu (collection, véhicules, braquages).
 // Les catégories gardent leurs points ; seuls leur groupe, leur ordre et parfois leur nom changent.
 (function () {
   const D = window.MG_DATA;
@@ -21,6 +21,8 @@
     }
   });
   const GROUPS = [
+    // --- Les missions d'abord ---
+    [990000, 'Story & Secrets', [990001, 990002, 990003, 990005, 29082]],
     // --- À visiter ---
     [990100, 'Landmarks & Buildings', [990106, 990101, 990105, 990108, 990107]],
     [27132, 'Food & Nightlife', [990102, 29053, 29056, 29055, 29031]],
@@ -36,7 +38,6 @@
     [27138, 'Collectible Cards', [29167, 29168, 29169, 29170, 29171, 29172, 29173, 29174, 29175, 29176, 29177, 29178, 29112, 29113, 29114, 29179, 29180, 29181]],
     [27134, 'WAiNK Locations', [29065, 29066, 29067, 29152, 29153]],
     [27144, 'AHOL Street Art - Geographies of Trash', [29159, 29163, 29165, 29162, 29161, 29158, 29154, 29164, 29156, 29160, 29157]],
-    [990000, 'Story & Secrets', [990001, 990002, 990003, 990005, 29082]],
     [27130, 'Vehicles to Steal', [29095, 29096, 29097, 990004, 29186]],
     [27129, 'Money & Robberies', [29022, 29023, 29024, 29025, 29026, 29027, 29051, 29052, 29054, 29083, 29037, 990201, 29216]],
     [27140, 'Illegal Operations', [29133, 29134, 29135, 29136, 29137, 29138, 29139, 29140, 29141]]

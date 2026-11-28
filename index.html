@@ -43,9 +43,20 @@
   /* Fermé : le panneau redescend sous le bouton et disparaît */
   .side.closed { transform: translateX(-105%); opacity: 0; pointer-events: none; }
   .side-head { padding: 14px 14px 10px 66px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
-  .side-head > .tabs, .side-head > .cash-main, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: -52px; }
+  .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: -52px; }
   /* Bouton « Je veux du cash » en tête du panneau */
-  .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: calc(100% + 52px); height: 40px; margin-top: 12px;
+  .quick { margin-top: 12px; width: calc(100% + 52px); }
+  .quick-row { display: flex; gap: 6px; margin-top: 6px; }
+  .quick-b { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 9px; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; }
+  .quick-b:hover { background: rgba(255, 255, 255, 0.12); }
+  .quick-b svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .quick-b.on { background: rgba(76, 201, 240, 0.85); border-color: transparent; color: #07202b; }
+  .cash-main.on { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); }
+  .qn { font-weight: 800; }
+  .qn:not(:empty)::before { content: '· '; }
+  .side-count .reset-focus { margin-left: 6px; color: #9cc9e6; cursor: pointer; text-decoration: underline; }
+  .cash-main { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 40px;
     border: 0; border-radius: 10px; background: rgba(47, 191, 113, 0.9); color: #06281a; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
   .cash-main:hover { background: rgba(47, 191, 113, 1); }
   .cash-main svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
@@ -190,7 +201,7 @@
     font-size: 13px; font-weight: 700; cursor: pointer; color: #7ee2a8;
   }
   .cash-btn:hover { background: var(--panel-hover); }
-  .cash-btn:not(.on) { display: none; }
+  .cash-btn { display: none !important; }   /* remplacée par les boutons du panneau */
   .cash-btn #focus-label { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cash-btn .cash-x { display: none; place-items: center; width: 26px; height: 26px; margin: 0 -6px 0 2px; border-radius: 13px; background: rgba(255, 255, 255, 0.12); color: var(--text); }
   .cash-btn .cash-x svg { width: 14px; height: 14px; stroke-width: 2.6; }
@@ -387,8 +398,8 @@
     body.side-closed .side-toggle svg { transform: none; }
     .side.closed { transform: translateY(calc(100% + 80px)); }
     .side-head { padding-left: 14px; }
-    .side-head > .tabs, .side-head > .cash-main, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
-    .cash-main { width: 100%; }
+    .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
+    .quick { width: 100%; }
     .me-btn { bottom: 14px; }
     .side-foot { padding-left: 72px; }   /* laisse la place au bouton flèche, qui reste en bas à gauche */
     .popup { width: min(300px, 86vw); }
@@ -421,7 +432,13 @@
       <button data-mode="done"><span class="ic">✓</span> <span class="tn" data-n="done">0</span></button>
       <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
-    <button class="cash-main" id="cash-open"><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg>Je veux du cash</button>
+    <div class="quick" id="quick">
+      <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b></button>
+      <div class="quick-row">
+        <button class="quick-b" id="veh-open" title="Véhicules à voler, triés par vitesse, accélération, tenue de route… Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M5 16h14M6 16l1.5-5h9L18 16M4 16v3h3v-3M17 16v3h3v-3M8.5 13.5h0.01M15.5 13.5h0.01"/></svg><span>Véhicules</span><b class="qn"></b></button>
+        <button class="quick-b" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
+      </div>
+    </div>
     <details class="disp" id="disp">
       <summary><svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>Affichage<span class="disp-sum" id="disp-sum"></span></summary>
       <div class="disp-body">
@@ -470,7 +487,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
+  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> (quelques performances : <a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a>) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
@@ -904,13 +921,16 @@
     }
     return chapCache[l.id];
   }
-  // Missions et planques des chapitres suivants : masquées pour ne rien dévoiler
-  const SPOIL_CATS = new Set([990001, 990005]);
+  // Missions : seulement celles du chapitre choisi (les précédentes ne sont plus jouables, les suivantes dévoileraient l'histoire).
+  // Planques : celles des chapitres suivants sont masquées.
   function spoiler(id) {
     if (!chapter) return false;
     const f = byIdEarly[id]; if (!f) return false;
-    const l = f.get('loc');
-    return SPOIL_CATS.has(l.c) && chapterOf(l) > chapter;
+    const l = f.get('loc'), c = chapterOf(l);
+    if (!c) return false;
+    if (l.c === 990001) return c !== chapter;
+    if (l.c === 990005) return c > chapter;
+    return false;
   }
   // Catégories dont les fiches donnent un prix de revente (« Sell Value »)
   const PRICE_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
@@ -1268,7 +1288,8 @@
   }
   function updateCounts() {
     const shown = pointSource.getFeatures().length;
-    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(focusLabel)} »`;
+    if (mode === 'all' && cashIds) countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> lieux affichés : seulement « ${esc(focusLabel)} »` +
+      (focusKind === 'cat' ? '<span class="reset-focus" data-reset-focus>Tout réafficher</span>' : '');
     else if (mode === 'all') countEl.innerHTML = `<b>${shown.toLocaleString('fr-CH')}</b> points affichés sur ${DATA.locations.length.toLocaleString('fr-CH')} · ${enabled.size} catégories sur ${DATA.categories.length}`;
     else countEl.innerHTML = '';
     const n = { fav: 0, todo: 0, done: 0 };
@@ -1287,7 +1308,7 @@
       saveEnabled(); syncChecks(); refreshPoints(); return;
     }
     const pb = e.target.closest('[data-price]');
-    if (pb) { e.stopPropagation(); showPriceList(+pb.dataset.price); return; }
+    if (pb) { e.stopPropagation(); openVeh('value'); return; }
     const head = e.target.closest('.grp-head');
     if (head) { head.parentElement.classList.toggle('collapsed'); return; }
     const cat = e.target.closest('.cat');
@@ -1475,12 +1496,15 @@
   function perfHtml(l) {
     const p = (window.PERF_VEHICULES || {})[l.id];
     if (!p) return '';
-    const [name, base, road, off, speed, acc, asph, offh, str] = p;
-    const bar = (lab, v) => `<div class="perf-row"><span>${lab}</span><span class="perf-bar"><i style="width:${Math.max(0, Math.min(10, v)) * 10}%"></i></span><b>${Number(v).toFixed(1).replace('.', ',')}</b></div>`;
+    const [name, base, road, off, speed, acc, asph, offh, str, src] = p;
+    const bar = (lab, v) => v == null ? '' : `<div class="perf-row"><span>${lab}</span><span class="perf-bar"><i style="width:${Math.max(0, Math.min(10, v)) * 10}%"></i></span><b>${Number(v).toFixed(1).replace('.', ',')}</b></div>`;
+    const source = src === 'playday'
+      ? '<a href="https://playday.one/2026/11/18/every-car-in-gta-6/" target="_blank" rel="noopener">playday.one</a> (NiaDB n\'a pas ce véhicule ; chiffres à confirmer)'
+      : '<a href="https://meowdb.com/gta6/vehicles" target="_blank" rel="noopener">NiaDB</a>';
     return `<div class="perf"><div class="perf-head">Performances</div>` +
       bar('Vitesse', speed) + bar('Accélération', acc) + bar('Tenue sur route', asph) + bar('Tenue tout-terrain', offh) + bar('Solidité', str) +
-      `<div class="perf-note">Note route ${road} · tout-terrain ${off}${base ? ' · chiffres du modèle de base (' + esc(name) + '), cette version peut différer' : ''}. ` +
-      `Source : <a href="https://meowdb.com/gta6/vehicles" target="_blank" rel="noopener">NiaDB</a></div></div>`;
+      `<div class="perf-note">${road != null ? 'Note route ' + road + ' · tout-terrain ' + off + '. ' : ''}${base ? 'Chiffres du modèle de base (' + esc(name) + '), cette version peut différer. ' : ''}` +
+      `Source : ${source}</div></div>`;
   }
   function descHtml(d) {
     const top = [], more = [], foot = [];
@@ -1917,6 +1941,16 @@
   function syncCashBtn() {
     cashBtn.classList.toggle('on', !!cashIds);
     document.getElementById('focus-label').textContent = focusLabel + (cashIds ? ' · ' + cashIds.size : '');
+    // Boutons du panneau : allumés quand leur liste est ouverte, avec le nombre de lieux
+    const cb = document.getElementById('cash-open'), vb = document.getElementById('veh-open');
+    cb.classList.toggle('on', focusKind === 'cash'); vb.classList.toggle('on', focusKind === 'veh');
+    cb.querySelector('.qn').textContent = focusKind === 'cash' && cashIds ? cashIds.size : '';
+    vb.querySelector('.qn').textContent = focusKind === 'veh' && cashIds ? cashIds.size : '';
+  }
+  // Retour au menu classique (catégories cochées)
+  function backToMenu() {
+    if (listEl.dataset.view) { delete listEl.dataset.view; rebuildCategoryList(); }
+    endCash();
   }
   // Une catégorie seule sur la carte (depuis la recherche)
   function focusCategory(cid) {
@@ -1931,7 +1965,7 @@
   }
   listEl.addEventListener('click', (e) => {
     if (listEl.dataset.view !== 'cash') return;
-    if (e.target.closest('[data-cash-back]')) { delete listEl.dataset.view; rebuildCategoryList(); endCash(); return; }
+    if (e.target.closest('[data-cash-back]')) { backToMenu(); return; }
     const cs = e.target.closest('[data-cs]');
     if (cs) { cashSort = cs.dataset.cs; showCashList(); return; }
     const cf = e.target.closest('[data-cf]');
@@ -1958,7 +1992,99 @@
     if (focusKind === 'cash') openCash(); else setSide(true);
   };
   cashBtn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cashBtn.click(); } };
-  document.getElementById('cash-open').onclick = openCash;
+  countEl.addEventListener('click', (e) => { if (e.target.closest('[data-reset-focus]')) backToMenu(); });
+
+  // --- Menu « Véhicules » : véhicules à voler triés par performances (NiaDB), valeur ou distance ---
+  const VEH_CATS = new Set(['Standout Vehicle', 'Randy Vehicle', 'Moses Vehicle']);
+  const VEH_SORTS = [['speed', 'Vitesse', 4], ['acc', 'Accélération', 5], ['asph', 'Tenue sur route', 6], ['offh', 'Tout-terrain', 7], ['str', 'Solidité', 8], ['value', 'Valeur', -1], ['dist', 'Distance', -2]];
+  const VEH_KEY = 'leonida.vehicules.v1';
+  let vehSort = 'speed', vehFilter = 'all';
+  try { const v = JSON.parse(localStorage.getItem(VEH_KEY) || 'null'); if (v) { if (VEH_SORTS.some(x => x[0] === v.sort)) vehSort = v.sort; if (PRICE_FILTERS.some(x => x[0] === v.filter)) vehFilter = v.filter; } } catch (e) {}
+  let vehItems = null;
+  function showVehList() {
+    if (!vehItems) vehItems = allFeatures.filter(f => VEH_CATS.has(catById[f.get('loc').c].en)).map(f => {
+      const l = f.get('loc'), crit = {};
+      CASH_CRIT.vehicule.forEach(c => { crit[c.key] = fieldOf(l, c.key); });
+      return { f, l, kind: 'vehicule', crit, p: (window.PERF_VEHICULES || {})[l.id] || null, price: priceOf(l), type: kindOfType(typeEnOf(l)) };
+    });
+    const here = herePos();
+    const from = here || (() => { const c = view.getCenter(); return { x: c[0], y: -c[1] }; })();
+    const S = VEH_SORTS.find(x => x[0] === vehSort);
+    const key = (it) => S[2] >= 0 ? (it.p ? it.p[S[2]] : null) : S[2] === -1 ? it.price : null;
+    const items = vehItems.filter(it => (vehFilter === 'all' || it.type === vehFilter) && critPass(it))
+      .map(it => Object.assign(it, { d: Math.hypot(it.l.x - from.x, it.l.y - from.y), done: markOf(it.l.id).st === 'done' }));
+    items.sort((a, b) => {
+      if (a.done !== b.done) return a.done - b.done;
+      if (vehSort === 'dist') return a.d - b.d;
+      const ka = key(a), kb = key(b);
+      if ((ka == null) !== (kb == null)) return ka == null ? 1 : -1;   // sans chiffre : à la fin
+      return (kb || 0) - (ka || 0) || a.d - b.d;
+    });
+    const note = !window.PERF_VEHICULES ? '' : '<div class="cash-note">Performances : NiaDB (et playday.one pour quelques-uns), pour ' + vehItems.filter(it => it.p).length + ' véhicules sur ' + vehItems.length +
+      '. Les autres sont en fin de liste quand on trie par performance.</div>';
+    listEl.innerHTML = `<div class="price-head"><b>Véhicules</b><button class="mini-btn" data-cash-back>← Catégories</button></div>
+      <div class="price-filter"><span class="pf-lab">Trier :</span>${VEH_SORTS.map(([k, t]) => `<button data-vs="${k}" class="${k === vehSort ? 'sel' : ''}">${t}</button>`).join('')}</div>
+      <div class="price-filter">${PRICE_FILTERS.map(([k, t]) => `<button data-vf="${k}" class="${k === vehFilter ? 'sel' : ''}">${t}</button>`).join('')}</div>` +
+      CASH_CRIT.vehicule.map(c => `<div class="price-filter"><span class="pf-lab">${c.lab} :</span>${c.vals.map(([v, t]) =>
+        `<button data-crit="vehicule|${c.key}|${esc(v)}" class="${critOn['vehicule|' + c.key].has(v) ? 'sel' : ''}">${t}</button>`).join('')}</div>`).join('') + note +
+      (items.length ? items.map(it => {
+        const { f, l, d, done } = it, c = catById[l.c], r = regionById[l.r], k = key(it);
+        const right = vehSort === 'dist' ? distTxt(d) : vehSort === 'value' ? (k ? money(k) : '<span class="none">valeur inconnue</span>')
+          : (k != null ? k.toFixed(1).replace('.', ',') : '<span class="none">pas de stats</span>');
+        const sub = [c.title, r, critText(it)].filter(Boolean).join(' · ');
+        return `<div class="mk res${done ? ' done-cash' : ''}" data-id="${l.id}">${badgeHtml(f.get('color'), f.get('icon'))}
+          <div><div class="t">${done ? '✓ ' : ''}${esc(l.t)}</div><div class="s">${esc(sub)}${vehSort !== 'dist' ? ' · <span class="dist">' + distTxt(d) + '</span>' : ''}</div></div>
+          <span class="price">${right}</span></div>`;
+      }).join('') : '<div class="empty">Aucun véhicule avec ces critères.</div>');
+    listEl.dataset.view = 'veh';
+    try { localStorage.setItem(VEH_KEY, JSON.stringify({ sort: vehSort, filter: vehFilter })); } catch (e) {}
+    saveCash();   // difficultés partagées avec « Je veux du cash »
+    setFocus(new Set(items.map(it => it.l.id)), 'Véhicules', 'veh');
+  }
+  function openVeh(sort) {
+    if (sort) vehSort = sort;
+    if (mode !== 'all') setMode('all');
+    setSide(true);
+    showVehList();
+    listEl.scrollTop = 0;
+  }
+  listEl.addEventListener('click', (e) => {
+    if (listEl.dataset.view !== 'veh') return;
+    if (e.target.closest('[data-cash-back]')) { backToMenu(); return; }
+    const vs = e.target.closest('[data-vs]');
+    if (vs) { vehSort = vs.dataset.vs; showVehList(); return; }
+    const vf = e.target.closest('[data-vf]');
+    if (vf) { vehFilter = vf.dataset.vf; showVehList(); return; }
+    const cb = e.target.closest('[data-crit]');
+    if (cb) {
+      const [k, key, v] = cb.dataset.crit.split('|'), on = critOn[k + '|' + key];
+      if (on.has(v) && on.size > 1) on.delete(v); else on.add(v);
+      showVehList(); return;
+    }
+    const it = e.target.closest('.mk[data-id]');
+    if (it) goToFeature(byId[it.dataset.id]);
+  }, true);
+
+  // --- « Que faire ? » : un easter egg ou une rencontre (inconnus et détraqués) au hasard, parmi les plus proches ---
+  const DICE_CATS = new Set([990003, 990002]);
+  let lastDice = null;
+  document.getElementById('dice').onclick = () => {
+    const here = herePos();
+    const from = here || (() => { const c = view.getCenter(); return { x: c[0], y: -c[1] }; })();
+    const pool = allFeatures.filter(f => { const l = f.get('loc'); return DICE_CATS.has(l.c) && markOf(l.id).st !== 'done' && !spoiler(l.id) && l.id !== lastDice; })
+      .map(f => ({ f, d: Math.hypot(f.get('loc').x - from.x, f.get('loc').y - from.y) })).sort((a, b) => a.d - b.d).slice(0, 8);   // les 8 plus proches
+    if (!pool.length) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)].f;
+    lastDice = pick.get('loc').id;
+    if (listEl.dataset.view) backToMenu();
+    const c = catById[pick.get('loc').c];
+    if (mode === 'all' && !enabled.has(c.id)) { enabled.add(c.id); saveEnabled(); syncChecks(); refreshPoints(); }
+    goToFeature(pick);
+  };
+
+  // Interrupteurs : premier clic, la liste ; second clic, retour au menu
+  document.getElementById('cash-open').onclick = () => { if (listEl.dataset.view === 'cash') backToMenu(); else openCash(); };
+  document.getElementById('veh-open').onclick = () => { if (listEl.dataset.view === 'veh') backToMenu(); else openVeh(); };
 
   // Crédits : pastille dépliable en bas du panneau
   const creditsBtn = document.getElementById('credits-btn');
@@ -2427,17 +2553,16 @@
     hereSource.clear();
     if (here) hereSource.addFeature(new ol.Feature(new ol.geom.Point([here.x, -here.y])));
     if (listEl.dataset.view === 'cash') showCashList();
+    if (listEl.dataset.view === 'veh') showVehList();
   }
   setHere(here);
 
   // --- Ma planque selon le chapitre (NiaDB : planques par chapitre ; positions Dexerto et gtadb.org) ---
   const homeSource = new ol.source.Vector();
-  const HOME_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#2fbf71" stroke="#ffffff" stroke-width="5"/>' +
-    '<path d="M18 31l14-12 14 12M22 28v15h20V28" fill="none" stroke="#06281a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const HOME_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#ff4fa3" stroke="#ffffff" stroke-width="5"/>' +
+    '<path d="M18 31l14-12 14 12M22 28v15h20V28" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const homeLayer = new ol.layer.Vector({ source: homeSource, zIndex: 20, style: [
-    new ol.style.Style({ image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(HOME_SVG), scale: 0.55 }),
-      text: new ol.style.Text({ text: 'Ma planque', offsetY: 26, font: '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        fill: new ol.style.Fill({ color: '#ffffff' }), stroke: new ol.style.Stroke({ color: 'rgba(10, 20, 28, 0.85)', width: 3.2 }) }) })
+    new ol.style.Style({ image: new ol.style.Icon({ src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(HOME_SVG), scale: 0.55 }) })
   ] });
   map.addLayer(homeLayer);
   function homeFor(ch) {
@@ -2450,9 +2575,9 @@
     const hid = chapter ? homeFor(chapter) : null, hf = hid && byId[hid];
     if (hf) { const f = new ol.Feature(hf.getGeometry().clone()); f.set('homeOf', hid); homeSource.addFeature(f); }
     const note = document.getElementById('chap-note');
-    if (!chapter) note.textContent = "Indique ton chapitre : ta planque s'affiche et les missions des chapitres suivants sont masquées.";
+    if (!chapter) note.textContent = "Indique ton chapitre : ta planque s'affiche (maison rose) et seules les missions de ce chapitre restent visibles.";
     else note.textContent = 'Ta planque : ' + (hf ? hf.get('loc').t : '?') + '.' + (chapter === 5 && window.PLANQUE_5 ? ' ' + window.PLANQUE_5 + '.' : '') +
-      ' Missions et planques des chapitres suivants masquées.';
+      ' Seules les missions du chapitre ' + chapter + ' sont affichées.';
     refreshPoints();
   }
   document.getElementById('chap-row').addEventListener('click', (e) => {
@@ -2537,12 +2662,13 @@
     applyLangData();
     searchIndex = null;
     const folded = [...listEl.querySelectorAll('.grp.collapsed')].map(g => g.dataset.g);
-    const wasCash = listEl.dataset.view === 'cash';
+    const wasCash = listEl.dataset.view === 'cash', wasVeh = listEl.dataset.view === 'veh';
     buildPanel();
     listEl.prepend(placeBox);
     folded.forEach(id => { const g = listEl.querySelector('.grp[data-g="' + id + '"]'); if (g) g.classList.add('collapsed'); });
     searchEl.dispatchEvent(new Event('input'));
     if (wasCash) showCashList();
+    if (wasVeh) showVehList();
     labelLayer.changed();
     if (mode !== 'all') renderMarksList();
     if (popupFeature) openPopup(popupFeature);

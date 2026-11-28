@@ -15,8 +15,21 @@
   window.PLANQUES = [];   // [chapitre, id du lieu] dans l'ordre de l'histoire
   const jason = D.locations.find(l => l.c === SAFE_CAT && /Jason/.test(l.t));
   const motel = D.locations.find(l => l.c === SAFE_CAT && /Starlet/.test(l.t));
-  if (jason) { add(jason, ['**Chapter:** 1', "_Prêtée par Brian. C'est la planque de Jason dès le chapitre 1._", SRC_GAR]); window.PLANQUES.push([1, jason.id]); }
-  if (motel) { add(motel, ['**Chapter:** 2', '_Disponible dès le chapitre 2, après la mission Discharge Time._', SRC_GAR]); window.PLANQUES.push([2, motel.id]); }
+  const GT_SRC = '_Source : [GTA VI Landmarks Data](https://map.gtadb.org) (CC BY 4.0), gtadb.org et contributeurs (photos et modèle réel)_';
+  if (jason) {
+    add(jason, ['**Chapter:** 1', "_Prêtée par Brian. C'est la planque de Jason dès le chapitre 1._", '**Inspired by:** 12522 FL-24, Cedar Key, FL',
+      '_Photos: in game, then the real building_', SRC_GAR, GT_SRC]);
+    jason.m = ['photos/gtadb/L266-ig.jpg', 'photos/gtadb/L266-rl.jpg'];
+    window.PLANQUES.push([1, jason.id]);
+  }
+  if (motel) {
+    add(motel, ['**Chapter:** 2', '_Disponible dès le chapitre 2, après la mission Discharge Time._', '**Inspired by:** Economy Inn, 23750 US-301, Lawtey, FL',
+      '_Photos: in game, then the real building, then the sign_', SRC_GAR, GT_SRC]);
+    motel.m = ['photos/gtadb/L304-ig.jpg', 'photos/gtadb/L304-rl.jpg', 'photos/gtadb/L307-ig.jpg'];
+    window.PLANQUES.push([2, motel.id]);
+  }
+  // Le panneau du Starlet Motel (point gtadb séparé, juste à côté) est réuni avec la planque
+  D.locations = D.locations.filter(l => l.id !== 980000307);
   // gtadb.org : Bayside Apartments (L475) et Y Vice City (L16), tous deux marqués « planque » chez gtadb
   const gt = (X, Y) => ({ x: Math.round((X + 16384) * 2 * 10) / 10, y: Math.round((16384 - Y) * 2 * 10) / 10 });
   const bay = Object.assign({ id: 960000003, c: SAFE_CAT, t: 'Bayside Apartments 201', r: 5644, m: ['photos/gtadb/L475-ig.jpg', 'photos/gtadb/L475-rl.jpg'] }, gt(-477.50611734178807, 1220.8554803668617));
@@ -56,17 +69,29 @@
     if (FREE[l.t] && (l.c === 29062 || l.c === 29063)) add(l, ['**Chapter:** ' + FREE[l.t][0], '_' + FREE[l.t][1] + '_', SRC_GAR]);
   });
 
-  // --- Repaires de gangs à braquer : butin ---
-  const HIDE = {
-    'Watson Bay Safehouse': '$6,200 - $9,600', 'Palmer Fishing Warehouse': '$7,400 - $13,200', 'Sunrise RV Park': '$10,700 - $17,900',
-    'Leonida Carrier Warehouse': '$2,500 - $3,500', 'Nova Auto Junkyard': '$10,500 - $11,500', 'Irons Building Supply': '$7,000 - $8,000'
+  // --- Opérations illégales (repaires de gangs) : butin et chapitre où elles s'ouvrent (NiaDB, page « robberies ») ---
+  // Quand NiaDB donne deux fourchettes (« ou »), on garde du plus bas au plus haut.
+  const SRC_ROB = '_Source : [NiaDB](https://meowdb.com/gta6/robberies)_';
+  const OPS_INFO = {
+    'Sunrise RV Park': ['$10,700 - $17,900', 2], 'Nova Auto Junkyard': ['$10,500 - $13,700', 2], 'Kingpin Bowling': ['$5,100 - $7,100', 2],
+    'Stash House': ['$1,800 - $2,200', 2], 'Brooks Boatworks': ['$1,760', 2], 'Weed Grow': ['$9,400 - $32,200', 0], "Janjak's Garage": ['$11,300 - $16,800', 3],
+    'Palmer Fishing Warehouse': ['$7,400 - $17,200', 0], 'Watson Bay Safehouse': ['$6,200 - $9,600', 0], 'Leonida Carrier Warehouse': ['$2,500 - $3,500', 0],
+    'Irons Building Supply': ['$7,000 - $8,000', 0], 'Chatfield Storage & Logistics': ['$2,200 - $3,000', 0], 'Walker Farm': ['$6,900 - $26,200', 0],
+    'Vespucci Mansion': ['$5,200 - $19,800', 0], 'Mill Station Radar Base': ['$8,900 - $22,800', 0], 'Slator Towing Inc': ['$5,500 - $7,500', 0],
+    'Ocean Beach Lab': ['$6,500 - $19,100', 0], 'Gas Station Meth Front': ['$8,100 - $14,400', 0], 'Carter Mining Boathouse': ['$18,000 - $37,000', 0],
+    'Exotic Animals Front': ['$900 - $1,100', 0],
+    // chapitre seulement
+    'Manatee Hotel': [null, 2], 'June Warehouse': [null, 2], 'La Cascara Motel': [null, 2], 'La Perle Trap House': [null, 3], 'Illegal Sneaker Trade': [null, 3],
+    'Industrial Weed Grow': [null, 2], 'Backroom Weed Front': [null, 2]
   };
   const OPS = new Set([29133, 29134, 29135, 29136, 29137, 29138, 29139, 29140, 29141]);
   D.locations.forEach(l => {
-    if (HIDE[l.t] && OPS.has(l.c)) {
-      l.d = (l.d || '').replace(/(\*\*Security:\*\*[^\n]*)/, '$1\n**Take Value:** ' + HIDE[l.t]);
-      add(l, [SRC_GAR]);
-    }
+    const o = OPS_INFO[l.t];
+    if (!o || !OPS.has(l.c)) return;
+    let d = l.d || '';
+    if (o[0]) d = /\*\*Security:\*\*/.test(d) ? d.replace(/(\*\*Security:\*\*[^\n]*)/, '$1\n**Take Value:** ' + o[0]) : '**Take Value:** ' + o[0] + (d ? '\n' + d : '');
+    if (o[1]) d = '**Chapter:** ' + o[1] + (d ? '\n' + d : '');
+    l.d = d.replace(/\s+$/, '') + '\n' + SRC_ROB;
   });
 })();
 

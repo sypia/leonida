@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128185203">
+<meta name="leonida-version" content="20261128195648">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128185203">
+<link rel="stylesheet" href="lib/ol.css?v=20261128195648">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -86,6 +86,27 @@
   .quick-row .cash-main { flex: 1; width: auto; height: 34px; font-size: 12.5px; gap: 6px; }
   .quick-row .cash-main svg { width: 16px; height: 16px; }
   .dice-main { width: 100%; height: 40px; font-size: 14px; }
+  .quick-top { margin-top: 0; }
+  .side[data-menu] .quick-top { display: none; }
+  /* Ramassage : bandeau du bas, gros boutons */
+  .ram { left: calc(50% + 165px); transform: translateX(-50%); bottom: 18px; width: min(440px, calc(100vw - 360px)); padding: 12px; border-radius: 16px; z-index: 15; }
+  body.side-closed .ram { left: 50%; width: min(440px, calc(100vw - 28px)); }
+  .ram.hidden { display: none; }
+  .ram-ask { font-size: 15px; font-weight: 700; text-align: center; padding: 4px 4px 10px; }
+  .ram-top { display: flex; align-items: center; gap: 10px; }
+  .ram-what { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 2px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .ram-what .badge { flex: none; width: 34px; height: 34px; }
+  .ram-what .badge svg { width: 20px; height: 20px; }
+  .ram-what > span:last-child { flex: 1; min-width: 0; }
+  .ram-what b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ram-what small { display: block; color: var(--muted, #9fb0bd); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ram-d { flex: none; font-weight: 800; font-size: 14px; color: #7ee2a8; }
+  .ram-x { flex: none; width: 32px; height: 32px; border-radius: 16px; border: 0; background: rgba(255, 255, 255, 0.1); color: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .ram-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .ram-btns button { flex: 1; height: 54px; border-radius: 12px; border: 0; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+  .ram-found { background: rgba(47, 191, 113, 0.95); color: #06281a; }
+  .ram-skip { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+  .ram-note { margin-top: 8px; text-align: center; font-size: 12px; color: var(--muted, #9fb0bd); }
   .dice-main svg { width: 19px; height: 19px; }
   .cash-main svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
   /* Réglages d'affichage, repliables */
@@ -490,6 +511,8 @@
     .side-head > .tabs, .side-head > .quick, .side-head > .disp, .side-head > #tools-all, .side-head > #tools-marks, .side-head > .side-count { margin-left: 0; }
     .quick { width: 100%; }
     .me-btn { bottom: calc(max(14px, calc(env(safe-area-inset-bottom) - 12px)) + 56px); }   /* au-dessus du bouton du menu */
+    .ram, body.side-closed .ram { left: 10px; right: 10px; width: auto; transform: none; bottom: max(10px, calc(env(safe-area-inset-bottom) - 14px)); }
+    body.ram-on .side-toggle, body.ram-on .me-btn { display: none; }
     .side-foot { border-top: 0; padding: 6px 72px calc(var(--sb) + 9px) 14px; }   /* « Crédits » centré sur la flèche, à sa gauche */
     .popup { width: min(300px, 86vw); }
     .popup .pin-text { font-size: 16px; }   /* 16 px : évite le zoom automatique d'iOS */
@@ -523,7 +546,10 @@
       <button data-mode="pins" title="Tes épingles"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/></svg></span> <span class="tn" data-n="pins">0</span></button>
     </div>
     <div class="quick" id="quick">
-      <button class="quick-b dice-main" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
+      <div class="quick-row quick-top">
+        <button class="quick-b dice-main" id="dice" title="Une idée au hasard : easter egg ou inconnus et détraqués, près de toi"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h0.01M15 9h0.01M12 12h0.01M9 15h0.01M15 15h0.01"/></svg><span>Que faire ?</span></button>
+        <button class="quick-b dice-main" id="ram-open" title="Ramassage : les objets à trouver autour de toi, l'un après l'autre (flamants, trésors, magazines, cartes…)"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7"/></svg><span>Ramassage</span></button>
+      </div>
       <div class="quick-row">
         <button class="cash-main" id="cash-open" title="Tout ce qui rapporte, trié par gain ou par distance. Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.7 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3"/></svg><span>Je veux du cash</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
         <button class="quick-b" id="veh-open" title="Véhicules à voler, triés par vitesse, accélération, tenue de route… Second clic : retour au menu."><svg viewBox="0 0 24 24"><path d="M5 16h14M6 16l1.5-5h9L18 16M4 16v3h3v-3M17 16v3h3v-3M8.5 13.5h0.01M15.5 13.5h0.01"/></svg><span>Véhicules</span><b class="qn"></b><span class="qx" title="Fermer">✕</span></button>
@@ -584,6 +610,7 @@
 </div>
 
 <div id="popup" class="popup hidden"></div>
+<div class="panel ram hidden" id="ram" role="region" aria-label="Ramassage"></div>
 <div id="sheet" class="popup sheet hidden" role="dialog" aria-label="Fiche du lieu"></div>
 <div id="dialog" class="dialog-back hidden" role="dialog" aria-modal="true"><div class="dialog" id="dialog-box"></div></div>
 
@@ -591,22 +618,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128185203"></script>
-<script src="donnees/points_mapgenie.js?v=20261128185203"></script>
-<script src="lib/icones.js?v=20261128185203"></script>
-<script src="donnees/points_dexerto.js?v=20261128185203"></script>
-<script src="donnees/points_gtadb.js?v=20261128185203"></script>
-<script src="donnees/points_scoop.js?v=20261128185203"></script>
-<script src="donnees/niadb.js?v=20261128185203"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128185203"></script>
-<script src="donnees/planques_argent.js?v=20261128185203"></script>
-<script src="donnees/doublons.js?v=20261128185203"></script>
-<script src="donnees/corrections.js?v=20261128185203"></script>
-<script src="donnees/organisation.js?v=20261128185203"></script>
-<script src="donnees/regions.js?v=20261128185203"></script>
-<script src="donnees/eaux.js?v=20261128185203"></script>
-<script src="donnees/traduction_fr.js?v=20261128185203"></script>
-<script src="donnees/lieux_fr.js?v=20261128185203"></script>
+<script src="lib/ol.js?v=20261128195648"></script>
+<script src="donnees/points_mapgenie.js?v=20261128195648"></script>
+<script src="lib/icones.js?v=20261128195648"></script>
+<script src="donnees/points_dexerto.js?v=20261128195648"></script>
+<script src="donnees/points_gtadb.js?v=20261128195648"></script>
+<script src="donnees/points_scoop.js?v=20261128195648"></script>
+<script src="donnees/niadb.js?v=20261128195648"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128195648"></script>
+<script src="donnees/planques_argent.js?v=20261128195648"></script>
+<script src="donnees/doublons.js?v=20261128195648"></script>
+<script src="donnees/corrections.js?v=20261128195648"></script>
+<script src="donnees/organisation.js?v=20261128195648"></script>
+<script src="donnees/regions.js?v=20261128195648"></script>
+<script src="donnees/eaux.js?v=20261128195648"></script>
+<script src="donnees/traduction_fr.js?v=20261128195648"></script>
+<script src="donnees/lieux_fr.js?v=20261128195648"></script>
 <script>
 (function () {
   'use strict';
@@ -2255,6 +2282,7 @@
     // Le relâchement d'un appui long (qui vient de poser une épingle) n'est pas un clic
     if (lpSuppress) { lpSuppress = false; return; }
     if (pressCoord) { closePress(); return; }   // un toucher ailleurs referme le menu de l'appui long
+    if (ramPicking()) { ramStartAt({ x: e.coordinate[0], y: -e.coordinate[1] }); return; }   // Ramassage : « je suis ici »
     // Ma planque : ouvre la fiche de la planque
     const homeHit = map.forEachFeatureAtPixel(e.pixel, f => f, { layerFilter: l => l === homeLayer, hitTolerance: 4 });
     if (homeHit && byId[homeHit.get('homeOf')]) { openPopup(byId[homeHit.get('homeOf')]); return; }
@@ -2647,6 +2675,108 @@
     if (mode === 'all' && !enabled.has(c.id)) { enabled.add(c.id); saveEnabled(); syncChecks(); refreshPoints(); }
     goToFeature(pick);
   };
+
+  // --- Ramassage : les objets à trouver, de proche en proche ---
+  // On touche la carte là où on est, puis chaque « Trouvé » ou « Passer » mène à l'objet le plus proche.
+  // Pour éviter les zigzags, un objet qui continue dans la même direction est un peu favorisé.
+  const RAM_GROUPS = new Set([27137, 27141, 27138, 27134, 27144]);   // Collection, trésors de Kenton, cartes, WAiNK, AHOL
+  const ramEl = document.getElementById('ram');
+  const ramSource = new ol.source.Vector();
+  const RAM_LINE = new ol.style.Style({ stroke: new ol.style.Stroke({ color: 'rgba(255, 255, 255, 0.9)', width: 3, lineDash: [8, 8] }) });
+  const RAM_RING = [new ol.style.Style({ image: new ol.style.Circle({ radius: 24, stroke: new ol.style.Stroke({ color: 'rgba(6, 40, 26, 0.6)', width: 7 }) }) }),
+    new ol.style.Style({ image: new ol.style.Circle({ radius: 24, stroke: new ol.style.Stroke({ color: '#2fbf71', width: 4 }) }) })];
+  map.addLayer(new ol.layer.Vector({ source: ramSource, zIndex: 25, style: (f) => f.get('line') ? RAM_LINE : RAM_RING }));
+  let ram = null;   // { step: 'pick' | 'go' | 'end', cur, prev, target, skipped, left }
+  function ramPicking() { return !!ram && ram.step === 'pick'; }
+  function ramPool() {
+    return allFeatures.filter(f => {
+      const l = f.get('loc'), c = catById[l.c];
+      return c && RAM_GROUPS.has(c.group_id) && markOf(l.id).st !== 'done' && !ram.skipped.has(l.id) && !spoiler(l.id);
+    });
+  }
+  function renderRam() {
+    if (!ram) { ramEl.classList.add('hidden'); document.body.classList.remove('ram-on'); ramSource.clear(); return; }
+    ramEl.classList.remove('hidden'); document.body.classList.add('ram-on');
+    if (ram.step === 'pick') {
+      ramEl.innerHTML = '<div class="ram-ask">Touche la carte là où tu es dans le jeu.</div><div class="ram-btns">' +
+        (herePos() ? '<button class="ram-found" data-ram="fromhere">Depuis ma position</button>' : '') +
+        '<button class="ram-skip" data-ram="quit">Annuler</button></div>';
+      return;
+    }
+    if (ram.step === 'end') {
+      ramEl.innerHTML = '<div class="ram-ask">Plus rien à ramasser : tout est trouvé ou passé.</div><div class="ram-btns">' +
+        (ram.skipped.size ? '<button class="ram-found" data-ram="again">Revoir les passés</button>' : '') +
+        '<button class="ram-skip" data-ram="quit">Terminer</button></div>';
+      return;
+    }
+    const l = ram.target.get('loc'), c = catById[l.c], r = regionById[l.r];
+    const d = Math.hypot(l.x - ram.cur.x, l.y - ram.cur.y);
+    ramEl.innerHTML = `<div class="ram-top">
+      <button class="ram-what" data-ram="open" title="Ouvrir la fiche (indices, photos)">${badgeHtml(groupColor[c.group_id], iconKeyOf(c))}<span><b>${esc(l.t)}</b><small>${esc(c.title)}${r ? ' · ' + esc(r) : ''}</small></span></button>
+      <span class="ram-d">${distTxt(d)}</span>
+      <button class="ram-x" data-ram="quit" title="Arrêter le ramassage">✕</button></div>
+      <div class="ram-btns"><button class="ram-found" data-ram="found">✓ Trouvé</button><button class="ram-skip" data-ram="skip">Passer ›</button></div>
+      <div class="ram-note">${ram.left} objet${ram.left > 1 ? 's' : ''} encore à trouver · touche le nom pour la fiche</div>`;
+  }
+  function ramShow() {
+    ramSource.clear();
+    if (!ram || ram.step !== 'go') return;
+    const a = [ram.cur.x, -ram.cur.y], b = ram.target.getGeometry().getCoordinates();
+    const line = new ol.Feature(new ol.geom.LineString([a, b])); line.set('line', true);
+    ramSource.addFeatures([line, new ol.Feature(new ol.geom.Point(b))]);
+    const c = ram.target.get('loc').c;
+    if (mode === 'all' && !cashIds && !enabled.has(c)) { enabled.add(c); soloPrev = null; saveEnabled(); syncChecks(); refreshPoints(); }
+    targetRes = null;
+    const bar = ramEl.offsetHeight || 150, side = !isPhone() && sideOpen() ? 330 : 0;
+    view.fit(ol.extent.boundingExtent([a, b]), { padding: [90, 60, bar + 50, side + 60], duration: 450,
+      maxZoom: view.getZoomForResolution(resForZoom(4.6)) });
+  }
+  function ramNext() {
+    const pool = ramPool();
+    ram.left = pool.length;
+    if (!pool.length) { ram.step = 'end'; ram.target = null; renderRam(); ramShow(); return; }
+    let hx = 0, hy = 0;
+    if (ram.prev) { const L = Math.hypot(ram.cur.x - ram.prev.x, ram.cur.y - ram.prev.y); if (L > 1) { hx = (ram.cur.x - ram.prev.x) / L; hy = (ram.cur.y - ram.prev.y) / L; } }
+    let best = null, bs = Infinity;
+    for (const f of pool) {
+      const l = f.get('loc'), dx = l.x - ram.cur.x, dy = l.y - ram.cur.y, d = Math.hypot(dx, dy);
+      const s = d * (1 - 0.2 * (d > 0 ? (dx * hx + dy * hy) / d : 0));   // jusqu'à 20 % de bonus dans la même direction
+      if (s < bs) { bs = s; best = f; }
+    }
+    ram.target = best; ram.step = 'go';
+    renderRam(); ramShow();
+  }
+  function ramStartAt(p) {
+    setHere(p);
+    ram.cur = { x: p.x, y: p.y }; ram.prev = null;
+    ramNext();
+  }
+  function ramQuit() { ram = null; renderRam(); }
+  document.getElementById('ram-open').onclick = () => {
+    closePopup();
+    if (listEl.dataset.view) backToMenu();
+    if (isPhone()) setSide(false);
+    ram = { step: 'pick', skipped: new Set() };
+    renderRam();
+  };
+  ramEl.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ram]'); if (!b || !ram) return;
+    const k = b.dataset.ram;
+    if (k === 'quit') ramQuit();
+    else if (k === 'fromhere') ramStartAt(herePos());
+    else if (k === 'again') { ram.skipped.clear(); ramNext(); }
+    else if (k === 'open' && ram.target) openPopup(ram.target);
+    else if (k === 'skip' && ram.target) { closePopup(); ram.skipped.add(ram.target.get('loc').id); ramNext(); }
+    else if (k === 'found' && ram.target) {
+      closePopup();
+      const l = ram.target.get('loc');
+      if (markOf(l.id).st !== 'done') { setMark(l.id, 'done'); poiLayer.changed(); updateCounts(); if (mode !== 'all') renderMarksList(); }
+      ram.prev = ram.cur; ram.cur = { x: l.x, y: l.y };
+      setHere(ram.cur);
+      ramNext();
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ram && !popupFeature && !pressCoord) ramQuit(); }, true);   // avant la fiche : Échap referme d'abord la fiche
 
   // Interrupteurs : premier clic, la liste ; second clic, retour au menu
   document.getElementById('cash-open').onclick = () => { if (listEl.dataset.view === 'cash') backToMenu(); else openCash(); };

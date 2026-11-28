@@ -963,7 +963,7 @@
       labelStyleCache[k] = new ol.style.Style({ zIndex: K.prio, text: new ol.style.Text({
         text, font: (K.italic ? 'italic ' : '') + K.w + ' ' + size + 'px ' + K.fam, overflow: true, padding: [2, 4, 2, 4],
         fill: new ol.style.Fill({ color: K.color || '#ffffff' }),
-        stroke: K.noStroke ? undefined : new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 1.6 }) }) });   // mini bord gris
+        stroke: K.noStroke ? undefined : new ol.style.Stroke({ color: 'rgba(70, 82, 88, 0.6)', width: 2.4 }) }) });   // mini bord gris
     }
     return labelStyleCache[k];
   }

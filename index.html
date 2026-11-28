@@ -169,6 +169,14 @@
   .price-filter button.sel { background: rgba(255, 255, 255, 0.14); color: var(--text); }
   .mk .price { margin-left: auto; padding-left: 8px; font-weight: 700; font-size: 12px; color: #7ee2a8; white-space: nowrap; }
   .cat-res .see { margin-left: auto; display: inline-flex; align-items: center; height: 26px; font-size: 11px; }
+  .popup .perf { margin: 10px 0 4px; padding: 8px 10px; border-radius: 9px; background: rgba(0, 0, 0, 0.22); }
+  .popup .perf-head { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .popup .perf-row { display: grid; grid-template-columns: 112px 1fr 30px; align-items: center; gap: 8px; font-size: 12px; margin: 3px 0; }
+  .popup .perf-row b { text-align: right; font-variant-numeric: tabular-nums; }
+  .popup .perf-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+  .popup .perf-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #4cc9f0, #7ee2a8); }
+  .popup .perf-note { font-size: 10.5px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+  .popup .perf-note a { color: #9cc9e6; }
   .popup details.more { margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
   .popup details.more summary { cursor: pointer; padding: 8px 0 4px; font-size: 12px; font-weight: 700; color: #9cc9e6; list-style: none; }
   .popup details.more summary::-webkit-details-marker { display: none; }
@@ -462,7 +470,7 @@
   </div>
   <div class="side-list" id="side-list"></div>
   <div class="side-list hidden" id="marks-list"></div>
-  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
+  <div class="side-foot"><button class="credits-btn" id="credits-btn" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Crédits</button><div class="credits hidden" id="credits">Fond de carte et bâtiments : <a href="https://map.gtadb.org" target="_blank" rel="noopener">gtadb.org</a> et contributeurs (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, bâtiments filtrés et classés) · Points et zones : Map Genie, Dexerto et MapMaster (conteneurs Scoop) · Planques, garages, repaires, coiffeurs et performances des véhicules : <a href="https://meowdb.com/gta6" target="_blank" rel="noopener">NiaDB</a> · Polices Oswald et Montserrat (SIL OFL) · <a href="https://openlayers.org" target="_blank" rel="noopener">OpenLayers</a></div></div>
 </div>
 <div class="panel side-toggle" id="side-toggle" title="Afficher / masquer le panneau" role="button" tabindex="0" aria-expanded="false">
   <svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>
@@ -483,6 +491,7 @@
 <script src="donnees/points_gtadb.js"></script>
 <script src="donnees/points_scoop.js"></script>
 <script src="donnees/niadb.js"></script>
+<script src="donnees/niadb_vehicules.js"></script>
 <script src="donnees/doublons.js"></script>
 <script src="donnees/corrections.js"></script>
 <script src="donnees/organisation.js"></script>
@@ -1316,6 +1325,16 @@
       return { f, title, title2, cat, meta, desc };
     });
   }
+  const FR_EN = {
+    rouge: ['red'], rouges: ['red'], rose: ['pink', 'rose'], roses: ['pink', 'rose'], blond: ['blonde'], blonde: ['blonde'], blonds: ['blonde'],
+    brun: ['brown'], brune: ['brown'], chatain: ['brown', 'chestnut'], noir: ['black'], noire: ['black'], vert: ['green'], verte: ['green'],
+    bleu: ['blue'], bleue: ['blue'], violet: ['purple', 'lilac'], lilas: ['lilac'], cuivre: ['copper'], roux: ['copper', 'red'], rousse: ['copper', 'red'],
+    platine: ['platinum'], jaune: ['yellow'], orange: ['orange'], gris: ['grey', 'gray', 'ash'], blanc: ['white'], blanche: ['white'],
+    tresse: ['braid'], tresses: ['braid'], nattes: ['braid', 'cornrows'], chignon: ['bun'], couette: ['ponytail'], frange: ['fringe', 'bangs'],
+    rase: ['buzz'], crete: ['mohawk', 'faux hawk'], iroquoise: ['mohawk'], barbe: ['beard', 'stubble', 'growth'], moustache: ['mustache'],
+    coiffeur: ['barber', 'salon', 'hair'], coiffure: ['hairstyle', 'hair'], coupe: ['cut', 'hairstyle'], cheveux: ['hair'], boucles: ['curl', 'curly'],
+    ondules: ['wavy'], degrade: ['fade', 'ombre'], meches: ['highlights', 'balayage']
+  };
   // Autres façons d'écrire un nom : « 919 » trouve « Nine1Nine »
   const ALIASES = [['nine1nine', '919'], ['ammu-nation', 'ammunation'], ['pay \'n\' spray', 'pay and spray paynspray']];
   const alias = (t) => ALIASES.reduce((acc, [a, b]) => acc.includes(a) ? acc + ' ' + b : acc, t);
@@ -1330,17 +1349,22 @@
     const out = [];
     // Ordre : nom qui commence par la recherche, catégorie qui correspond, mot du nom, morceau du nom,
     // puis groupe ou zone, et en dernier ce qui n'est que dans la description
+    // Un mot français trouve aussi son équivalent anglais (« rouge » -> red), utile pour les coupes et couleurs des coiffeurs
+    const alts = (w) => [w].concat(FR_EN[w] || []);
+    const has = (t, w) => alts(w).some(a => t.includes(a));
+    const ws = (t, w) => alts(w).some(a => wordStart(t, a));
     for (const it of searchIndex) {
       const tt = it.title + ' | ' + it.title2;
-      const all = tt + ' ' + it.cat + ' ' + it.meta + ' ' + it.desc;
-      if (!words.every(w => all.includes(w))) continue;
+      const near = tt + ' ' + it.cat + ' ' + it.meta;
+      // dans la description, seulement en début de mot (« red » ne doit pas trouver « covered »)
+      if (!words.every(w => has(near, w) || ws(it.desc, w))) continue;
       let score;
       if (it.title.startsWith(q) || (it.title2 && it.title2.startsWith(q))) score = 0;
       else if (it.cat.split(' | ').includes(q)) score = 0.5;   // nom exact de la catégorie (« club » -> les clubs)
-      else if (words.every(w => wordStart(it.cat, w))) score = 1;
-      else if (words.every(w => wordStart(tt, w))) score = 2;
-      else if (words.every(w => tt.includes(w))) score = 3;
-      else if (words.every(w => (tt + ' ' + it.cat + ' ' + it.meta).includes(w))) score = 4;
+      else if (words.every(w => ws(it.cat, w))) score = 1;
+      else if (words.every(w => ws(tt, w))) score = 2;
+      else if (words.every(w => has(tt, w))) score = 3;
+      else if (words.every(w => has(near, w))) score = 4;
       else score = 5;
       out.push([score, it]);
     }
@@ -1446,7 +1470,18 @@
   const ESSENTIEL = new Set(['location', 'legend', 'emplacement', 'take value', 'butin', 'sell value', 'valeur de revente',
     'security', 'securite', 'access', 'acces', 'tracker', 'traceur', 'max payout', 'gain maximum', 'buy in', "droit d'entree",
     'reward', 'recompense', 'price', 'prix', 'cost', 'cout', 'membership cost', "prix de l'abonnement", 'inspired by', 'inspire de',
-    'chapter', 'chapitre', 'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
+    'chapter', 'chapitre', 'hair colours', 'couleurs de cheveux', 'jason hairstyles', 'coupes pour jason', 'lucia hairstyles', 'coupes pour lucia', 'challenge', 'defi', 'par time', 'temps de reference', 'time to beat', 'temps a battre', 'treasure', 'tresor', 'treasures', 'tresors']);
+  // Performances d'un véhicule (NiaDB) : barres sur 10
+  function perfHtml(l) {
+    const p = (window.PERF_VEHICULES || {})[l.id];
+    if (!p) return '';
+    const [name, base, road, off, speed, acc, asph, offh, str] = p;
+    const bar = (lab, v) => `<div class="perf-row"><span>${lab}</span><span class="perf-bar"><i style="width:${Math.max(0, Math.min(10, v)) * 10}%"></i></span><b>${Number(v).toFixed(1).replace('.', ',')}</b></div>`;
+    return `<div class="perf"><div class="perf-head">Performances</div>` +
+      bar('Vitesse', speed) + bar('Accélération', acc) + bar('Tenue sur route', asph) + bar('Tenue tout-terrain', offh) + bar('Solidité', str) +
+      `<div class="perf-note">Note route ${road} · tout-terrain ${off}${base ? ' · chiffres du modèle de base (' + esc(name) + '), cette version peut différer' : ''}. ` +
+      `Source : <a href="https://meowdb.com/gta6/vehicles" target="_blank" rel="noopener">NiaDB</a></div></div>`;
+  }
   function descHtml(d) {
     const top = [], more = [], foot = [];
     let cur = top;
@@ -1518,7 +1553,7 @@
       <button class="share-place" data-share="${l.id}">↗ Partager ce lieu</button>
       <div class="share-msg" aria-live="polite"></div>
       ${nearHtml(f)}
-      ${l.d ? descHtml(l.d) : ''}
+      ${perfHtml(l)}${l.d ? descHtml(l.d) : ''}
     </div>`;
 
     const phone = isPhone();

@@ -601,7 +601,7 @@ window.TRAD_FR = (function () {
 
   // --- Descriptions ---
   const rubriques = {
-    'Address': 'Adresse', 'Inspired by': 'Inspiré de', 'Chapter': 'Chapitre', 'Price with Savings Perk': "Prix avec le bonus d'épargne",
+    'Address': 'Adresse', 'Inspired by': 'Inspiré de', 'Chapter': 'Chapitre', 'Hair Colours': 'Couleurs de cheveux', 'Jason Hairstyles': 'Coupes pour Jason', 'Lucia Hairstyles': 'Coupes pour Lucia', 'Beards': 'Barbes', 'Price with Savings Perk': "Prix avec le bonus d'épargne",
     'Location': 'Emplacement', 'Legend': 'Emplacement', 'Security': 'Sécurité', 'Route': 'Lignes', 'Type': 'Type',
     'Features': 'Équipements', 'Take Value': 'Butin', 'Challenge': 'Défi', 'Access': 'Accès', 'Tracker': 'Traceur',
     'Era': 'Époque', 'Body Condition': 'État de la carrosserie', 'Seats': 'Places', 'Specialist': 'Spécialiste',

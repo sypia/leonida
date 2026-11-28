@@ -8,9 +8,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Leonida">
-<meta name="leonida-version" content="20261128183750">
+<meta name="leonida-version" content="20261128184416">
 <title>Leonida · Carte GTA VI</title>
-<link rel="stylesheet" href="lib/ol.css?v=20261128183750">
+<link rel="stylesheet" href="lib/ol.css?v=20261128184416">
 <style>
   /* Polices des noms de lieux (licence SIL OFL, voir lib/polices) */
   @font-face { font-family: 'Oswald'; font-weight: 400; font-display: swap; src: url(lib/polices/oswald-latin-400-normal.woff2) format('woff2'); }
@@ -340,7 +340,19 @@
     transform: translate(-50%, calc(-100% - 16px)); overflow: hidden; cursor: auto;
   }
   .popup::after { content: ''; }
-  .popup .ph { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #0d151b; }
+  .popup .ph { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #0d151b; cursor: zoom-in; }
+  /* Visionneuse de photos : plein écran, zoom au pincement ou double toucher */
+  .viewer { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.94); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .viewer.hidden { display: none; }
+  .viewer img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; -webkit-user-drag: none; }
+  .viewer .v-close { position: absolute; z-index: 2; top: calc(env(safe-area-inset-top) + 10px); right: 12px; width: 40px; height: 40px; border-radius: 20px; border: 0;
+    background: rgba(255, 255, 255, 0.16); color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; display: grid; place-items: center; }
+  .viewer .v-count { position: absolute; z-index: 2; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom) + 14px); color: #fff; font-size: 13px; font-weight: 600;
+    background: rgba(255, 255, 255, 0.14); padding: 3px 10px; border-radius: 10px; }
+  .viewer .v-count:empty { display: none; }
+  .viewer .v-nav { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(255, 255, 255, 0.14); color: #fff; font-size: 22px; cursor: pointer; }
+  .viewer .v-prev { left: 12px; } .viewer .v-next { right: 12px; }
+  @media (max-width: 600px), (hover: none) { .viewer .v-nav { display: none; } }   /* sur téléphone : on glisse sur le côté */
   .popup .ph-strip { display: flex; gap: 4px; padding: 4px 4px 0; overflow-x: auto; }
   .popup .ph-strip img { height: 44px; border-radius: 4px; cursor: pointer; opacity: 0.6; }
   .popup .ph-strip img.sel { opacity: 1; outline: 2px solid #fff; }
@@ -478,6 +490,7 @@
 </head>
 <body class="side-closed">
 <div id="map" tabindex="0"></div>
+<div class="viewer hidden" id="viewer" aria-hidden="true"><img alt=""><button class="v-close" aria-label="Fermer">✕</button><button class="v-nav v-prev" aria-label="Photo précédente">‹</button><button class="v-nav v-next" aria-label="Photo suivante">›</button><div class="v-count"></div></div>
 <div class="panel cash-btn" id="cash-btn" role="button" tabindex="0" title="Seuls ces lieux sont affichés. Touche pour revoir la liste.">
   <svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span id="focus-label">Je veux du cash</span><span class="cash-x" title="Terminer : réafficher tous les points cochés" aria-label="Terminer"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></span>
 </div>
@@ -569,22 +582,22 @@
 
 <div class="panel status">Zoom <b id="z">–</b> · x <b id="cx">–</b> · y <b id="cy">–</b></div>
 
-<script src="lib/ol.js?v=20261128183750"></script>
-<script src="donnees/points_mapgenie.js?v=20261128183750"></script>
-<script src="lib/icones.js?v=20261128183750"></script>
-<script src="donnees/points_dexerto.js?v=20261128183750"></script>
-<script src="donnees/points_gtadb.js?v=20261128183750"></script>
-<script src="donnees/points_scoop.js?v=20261128183750"></script>
-<script src="donnees/niadb.js?v=20261128183750"></script>
-<script src="donnees/niadb_vehicules.js?v=20261128183750"></script>
-<script src="donnees/planques_argent.js?v=20261128183750"></script>
-<script src="donnees/doublons.js?v=20261128183750"></script>
-<script src="donnees/corrections.js?v=20261128183750"></script>
-<script src="donnees/organisation.js?v=20261128183750"></script>
-<script src="donnees/regions.js?v=20261128183750"></script>
-<script src="donnees/eaux.js?v=20261128183750"></script>
-<script src="donnees/traduction_fr.js?v=20261128183750"></script>
-<script src="donnees/lieux_fr.js?v=20261128183750"></script>
+<script src="lib/ol.js?v=20261128184416"></script>
+<script src="donnees/points_mapgenie.js?v=20261128184416"></script>
+<script src="lib/icones.js?v=20261128184416"></script>
+<script src="donnees/points_dexerto.js?v=20261128184416"></script>
+<script src="donnees/points_gtadb.js?v=20261128184416"></script>
+<script src="donnees/points_scoop.js?v=20261128184416"></script>
+<script src="donnees/niadb.js?v=20261128184416"></script>
+<script src="donnees/niadb_vehicules.js?v=20261128184416"></script>
+<script src="donnees/planques_argent.js?v=20261128184416"></script>
+<script src="donnees/doublons.js?v=20261128184416"></script>
+<script src="donnees/corrections.js?v=20261128184416"></script>
+<script src="donnees/organisation.js?v=20261128184416"></script>
+<script src="donnees/regions.js?v=20261128184416"></script>
+<script src="donnees/eaux.js?v=20261128184416"></script>
+<script src="donnees/traduction_fr.js?v=20261128184416"></script>
+<script src="donnees/lieux_fr.js?v=20261128184416"></script>
 <script>
 (function () {
   'use strict';
@@ -1865,9 +1878,11 @@
       const drop = () => { main.remove(); const st = el.querySelector('.ph-strip'); if (st) st.remove(); el.querySelector('.body').classList.add('noimg'); };
       main.addEventListener('error', drop);
       if (main.complete && main.naturalWidth === 0) drop();
+      main.dataset.i = 0;
+      main.onclick = () => openViewer(imgs, +main.dataset.i || 0);   // photo en grand, avec zoom
     }
     cardEl.querySelectorAll('.ph-strip img').forEach(im => im.onclick = () => {
-      main.src = imgs[+im.dataset.i];
+      main.src = imgs[+im.dataset.i]; main.dataset.i = im.dataset.i;
       cardEl.querySelectorAll('.ph-strip img').forEach(x => x.classList.toggle('sel', x === im));
     });
     setHash('lieu-' + l.id);
@@ -1984,6 +1999,110 @@
   }
   popupEl.addEventListener('click', onCardClick);
   sheetEl.addEventListener('click', onCardClick);
+
+  // --- Visionneuse de photos : pincer ou double toucher pour zoomer, un doigt pour se déplacer une fois zoomé,
+  //     glisser sur le côté pour changer de photo, vers le bas (ou la croix, ou Échap) pour fermer ---
+  const viewerEl = document.getElementById('viewer'), vImg = viewerEl.querySelector('img'), vCount = viewerEl.querySelector('.v-count');
+  let vList = [], vIdx = 0, vs = 1, vtx = 0, vty = 0;
+  const vApply = (anim) => { vImg.style.transition = anim ? 'transform 0.2s ease' : 'none'; vImg.style.transform = `translate(${vtx}px, ${vty}px) scale(${vs})`; };
+  const vClamp = () => {
+    const W = viewerEl.clientWidth, H = viewerEl.clientHeight;
+    // Taille de la photo affichée (object-fit: contain) pour ne pas la perdre hors de l'écran
+    const r = vImg.naturalWidth && vImg.naturalHeight ? Math.min(W / vImg.naturalWidth, H / vImg.naturalHeight) : 1;
+    const w = (vImg.naturalWidth || W) * r * vs, h = (vImg.naturalHeight || H) * r * vs;
+    const mx = Math.max(0, (w - W) / 2), my = Math.max(0, (h - H) / 2);
+    vtx = Math.max(-mx, Math.min(mx, vtx)); vty = Math.max(-my, Math.min(my, vty));
+  };
+  const vShow = (i) => {
+    vIdx = (i + vList.length) % vList.length; vs = 1; vtx = 0; vty = 0; vApply(false);
+    vImg.src = vList[vIdx];
+    vCount.textContent = vList.length > 1 ? (vIdx + 1) + ' / ' + vList.length : '';
+  };
+  function openViewer(list, i) {
+    if (!list || !list.length) return;
+    vList = list; vShow(i || 0);
+    viewerEl.classList.remove('hidden'); viewerEl.setAttribute('aria-hidden', 'false');
+  }
+  function closeViewer() { viewerEl.classList.add('hidden'); viewerEl.setAttribute('aria-hidden', 'true'); vImg.removeAttribute('src'); viewerEl.style.background = ''; }
+  viewerEl.querySelector('.v-close').onclick = closeViewer;
+  viewerEl.querySelector('.v-prev').onclick = () => vShow(vIdx - 1);
+  viewerEl.querySelector('.v-next').onclick = () => vShow(vIdx + 1);
+  document.addEventListener('keydown', (e) => {
+    if (viewerEl.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeViewer();
+    else if (e.key === 'ArrowLeft') vShow(vIdx - 1);
+    else if (e.key === 'ArrowRight') vShow(vIdx + 1);
+  });
+  // Zoom à un point de l'écran (px, py), en gardant ce point sous le doigt ou la souris
+  const vZoomAt = (ns, px, py, base) => {
+    const W = viewerEl.clientWidth, H = viewerEl.clientHeight, cx = W / 2, cy = H / 2;
+    const b = base || { s: vs, tx: vtx, ty: vty, px, py };
+    ns = Math.max(1, Math.min(6, ns));
+    const ux = (b.px - cx - b.tx) / b.s, uy = (b.py - cy - b.ty) / b.s;   // point de la photo sous le doigt au départ
+    vs = ns; vtx = px - cx - ux * ns; vty = py - cy - uy * ns;
+    if (vs === 1) { vtx = 0; vty = 0; }
+    vClamp();
+  };
+  // Tactile
+  let vt = null, vLastTap = 0;
+  viewerEl.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button')) return;
+    const ts = e.touches;
+    if (ts.length === 2) {
+      const mx = (ts[0].clientX + ts[1].clientX) / 2, my = (ts[0].clientY + ts[1].clientY) / 2;
+      vt = { mode: 'pinch', d0: Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY), base: { s: vs, tx: vtx, ty: vty, px: mx, py: my } };
+    } else if (ts.length === 1) {
+      vt = { mode: 'one', x0: ts[0].clientX, y0: ts[0].clientY, tx0: vtx, ty0: vty, t0: Date.now(), moved: false };
+    }
+    e.preventDefault();
+  }, { passive: false });
+  viewerEl.addEventListener('touchmove', (e) => {
+    if (!vt) return;
+    const ts = e.touches;
+    if (vt.mode === 'pinch' && ts.length === 2) {
+      const d = Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
+      const mx = (ts[0].clientX + ts[1].clientX) / 2, my = (ts[0].clientY + ts[1].clientY) / 2;
+      vZoomAt(vt.base.s * d / vt.d0, mx, my, vt.base); vApply(false);
+    } else if (vt.mode === 'one' && ts.length === 1) {
+      const dx = ts[0].clientX - vt.x0, dy = ts[0].clientY - vt.y0;
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) vt.moved = true;
+      if (vs > 1) { vtx = vt.tx0 + dx; vty = vt.ty0 + dy; vClamp(); vApply(false); }
+      else if (dy > 0 && Math.abs(dy) > Math.abs(dx)) {   // tirer vers le bas : la photo suit, le fond s'éclaircit
+        vtx = 0; vty = dy; vApply(false); viewerEl.style.background = `rgba(0, 0, 0, ${Math.max(0.3, 0.94 - dy / 500)})`;
+      } else { vtx = dx; vty = 0; vApply(false); }   // sur le côté : photo suivante ou précédente
+    }
+    e.preventDefault();
+  }, { passive: false });
+  viewerEl.addEventListener('touchend', (e) => {
+    if (!vt) return;
+    if (e.touches.length) {   // un doigt levé pendant le pincement : on repart d'un seul doigt
+      if (vt.mode === 'pinch' && e.touches.length === 1) vt = { mode: 'one', x0: e.touches[0].clientX, y0: e.touches[0].clientY, tx0: vtx, ty0: vty, t0: Date.now(), moved: true };
+      return;
+    }
+    const g = vt; vt = null;
+    if (g.mode !== 'one') return;
+    const t = e.changedTouches[0], dx = t.clientX - g.x0, dy = t.clientY - g.y0;
+    if (!g.moved) {
+      const now = Date.now();
+      if (now - vLastTap < 300) {   // double toucher : zoom x2,5 sur ce point, ou retour à la taille normale
+        if (vs > 1) { vs = 1; vtx = 0; vty = 0; } else vZoomAt(2.5, t.clientX, t.clientY);
+        vApply(true); vLastTap = 0;
+      } else vLastTap = now;
+      return;
+    }
+    if (vs > 1) return;
+    viewerEl.style.background = '';
+    if (dy > 110 && Math.abs(dy) > Math.abs(dx)) { closeViewer(); return; }
+    if (Math.abs(dx) > 60 && vList.length > 1) { vShow(vIdx + (dx < 0 ? 1 : -1)); return; }
+    vtx = 0; vty = 0; vApply(true);
+  });
+  // Souris : molette pour zoomer, glisser pour se déplacer, double clic
+  viewerEl.addEventListener('wheel', (e) => { e.preventDefault(); vZoomAt(vs * Math.exp(-e.deltaY / 300), e.clientX, e.clientY); vApply(false); }, { passive: false });
+  let vm = null;
+  viewerEl.addEventListener('mousedown', (e) => { if (e.target.closest('button')) return; vm = { x: e.clientX, y: e.clientY, tx: vtx, ty: vty }; });
+  window.addEventListener('mousemove', (e) => { if (!vm || vs <= 1) return; vtx = vm.tx + e.clientX - vm.x; vty = vm.ty + e.clientY - vm.y; vClamp(); vApply(false); });
+  window.addEventListener('mouseup', () => { vm = null; });
+  viewerEl.addEventListener('dblclick', (e) => { if (vs > 1) { vs = 1; vtx = 0; vty = 0; } else vZoomAt(2.5, e.clientX, e.clientY); vApply(true); });
   // Téléphone : glisser la fiche vers le bas pour la refermer, comme le menu.
   // Depuis n'importe où si la fiche est déjà tout en haut ; sinon le glissement fait remonter son contenu.
   (function () {
